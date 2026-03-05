@@ -1,0 +1,196 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import StudentTable from '../components/StudentTable';
+import { useAuth } from '../context/AuthContext';
+import { createStudent, getStudents } from '../services/studentService';
+
+const initialStudentForm = {
+  name: '',
+  join_date: new Date().toISOString().slice(0, 10),
+  streamline: '',
+  coach: '',
+  coach_email: '',
+  professional_level_completed_at: '',
+};
+
+const StudentsPage = () => {
+  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+  const [students, setStudents] = useState([]);
+  const [search, setSearch] = useState('');
+  const [filterStreamline, setFilterStreamline] = useState('');
+  const [filterCoach, setFilterCoach] = useState('');
+  const [error, setError] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState(initialStudentForm);
+
+  const loadStudents = async (params = {}) => {
+    try {
+      const data = await getStudents(params);
+      setStudents(data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load students.');
+    }
+  };
+
+  useEffect(() => {
+    loadStudents();
+  }, []);
+
+  const handleFilter = () => {
+    loadStudents({
+      search,
+      streamline: filterStreamline || undefined,
+      coach: filterCoach || undefined,
+    });
+  };
+
+  const streamlineOptions = useMemo(
+    () => [...new Set(students.map((student) => student.streamline).filter(Boolean))],
+    [students],
+  );
+
+  const coachOptions = useMemo(
+    () => [...new Set(students.map((student) => student.coach).filter(Boolean))],
+    [students],
+  );
+
+  const onCreateStudent = async (event) => {
+    event.preventDefault();
+    try {
+      setCreating(true);
+      setError('');
+      await createStudent({
+        ...form,
+        professional_level_completed_at: form.professional_level_completed_at || undefined,
+      });
+      setForm(initialStudentForm);
+      await loadStudents();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not create student.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <main className="space-y-6 p-4 sm:p-6 lg:p-8">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">Students</p>
+          <h1 className="text-2xl font-extrabold text-slate-900">Student List</h1>
+        </div>
+      </header>
+
+      <section className="grid gap-3 rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-slate-200 md:grid-cols-4">
+        <input
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search by name"
+          value={search}
+        />
+        <select
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+          onChange={(event) => setFilterStreamline(event.target.value)}
+          value={filterStreamline}
+        >
+          <option value="">All streamlines</option>
+          {streamlineOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+        <select
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+          onChange={(event) => setFilterCoach(event.target.value)}
+          value={filterCoach}
+        >
+          <option value="">All coaches</option>
+          {coachOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+        <button
+          className="rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-600"
+          onClick={handleFilter}
+          type="button"
+        >
+          Apply Filters
+        </button>
+      </section>
+
+      {error && <p className="rounded-xl bg-red-50 p-4 font-semibold text-red-700">{error}</p>}
+
+      <StudentTable
+        onOpenMarking={(id) => navigate(`/students/${id}/mark`)}
+        onOpenProfile={(id) => navigate(`/students/${id}`)}
+        students={students}
+      />
+
+      {isAdmin && (
+        <section className="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200">
+          <h2 className="text-lg font-bold text-slate-900">Add Student</h2>
+          <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={onCreateStudent}>
+            <input
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+              placeholder="Student Name"
+              required
+              value={form.name}
+            />
+            <input
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              onChange={(event) => setForm((prev) => ({ ...prev, streamline: event.target.value }))}
+              placeholder="Streamline"
+              required
+              value={form.streamline}
+            />
+            <input
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              onChange={(event) => setForm((prev) => ({ ...prev, coach: event.target.value }))}
+              placeholder="Coach Name"
+              required
+              value={form.coach}
+            />
+            <input
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              onChange={(event) => setForm((prev) => ({ ...prev, coach_email: event.target.value }))}
+              placeholder="Coach Email"
+              required
+              type="email"
+              value={form.coach_email}
+            />
+            <input
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              onChange={(event) => setForm((prev) => ({ ...prev, join_date: event.target.value }))}
+              required
+              type="date"
+              value={form.join_date}
+            />
+            <input
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, professional_level_completed_at: event.target.value }))
+              }
+              placeholder="Professional completion date"
+              type="date"
+              value={form.professional_level_completed_at}
+            />
+            <button
+              className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800 md:col-span-2"
+              disabled={creating}
+              type="submit"
+            >
+              {creating ? 'Adding...' : 'Add Student'}
+            </button>
+          </form>
+        </section>
+      )}
+    </main>
+  );
+};
+
+export default StudentsPage;
