@@ -10,6 +10,11 @@ export const getStudentById = async (id) => {
   return data;
 };
 
+export const getStudentForMarking = async (id) => {
+  const { data } = await api.get(`/students/${id}/marking-context`);
+  return data;
+};
+
 export const createStudent = async (payload) => {
   const { data } = await api.post('/students', payload);
   return data;
@@ -17,5 +22,15 @@ export const createStudent = async (payload) => {
 
 export const getDashboardStats = async () => {
   const { data } = await api.get('/students/dashboard/stats');
+  return data;
+};
+
+export const getDueBoard = async () => {
+  const { data } = await api.get('/students/due-board');
+  return data;
+};
+
+export const getCoachKpi = async () => {
+  const { data } = await api.get('/students/coach-kpi');
   return data;
 };

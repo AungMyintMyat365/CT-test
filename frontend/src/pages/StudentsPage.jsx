@@ -17,6 +17,12 @@ const StudentsPage = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const [students, setStudents] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    totalPages: 1,
+  });
   const [search, setSearch] = useState('');
   const [filterStreamline, setFilterStreamline] = useState('');
   const [filterCoach, setFilterCoach] = useState('');
@@ -24,25 +30,57 @@ const StudentsPage = () => {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(initialStudentForm);
 
-  const loadStudents = async (params = {}) => {
+  const loadStudents = async (params = {}, nextPage = pagination.page) => {
     try {
-      const data = await getStudents(params);
-      setStudents(data);
+      const data = await getStudents({
+        ...params,
+        page: nextPage,
+        pageSize: pagination.pageSize,
+      });
+
+      if (Array.isArray(data)) {
+        setStudents(data);
+        setPagination((prev) => ({
+          ...prev,
+          page: nextPage,
+          total: data.length,
+          totalPages: 1,
+        }));
+      } else {
+        setStudents(data.items || []);
+        setPagination(data.pagination || pagination);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load students.');
     }
   };
 
   useEffect(() => {
-    loadStudents();
+    loadStudents({}, 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFilter = () => {
-    loadStudents({
-      search,
-      streamline: filterStreamline || undefined,
-      coach: filterCoach || undefined,
-    });
+    loadStudents(
+      {
+        search,
+        streamline: filterStreamline || undefined,
+        coach: filterCoach || undefined,
+      },
+      1,
+    );
+  };
+
+  const goToPage = (nextPage) => {
+    if (nextPage < 1 || nextPage > pagination.totalPages) return;
+    loadStudents(
+      {
+        search,
+        streamline: filterStreamline || undefined,
+        coach: filterCoach || undefined,
+      },
+      nextPage,
+    );
   };
 
   const streamlineOptions = useMemo(
@@ -129,6 +167,30 @@ const StudentsPage = () => {
         onOpenProfile={(id) => navigate(`/students/${id}`)}
         students={students}
       />
+
+      <section className="flex items-center justify-between rounded-2xl bg-white/90 px-4 py-3 shadow-sm ring-1 ring-slate-200">
+        <p className="text-sm font-semibold text-slate-700">
+          Page {pagination.page} of {pagination.totalPages} | Total Students: {pagination.total}
+        </p>
+        <div className="flex gap-2">
+          <button
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={pagination.page <= 1}
+            onClick={() => goToPage(pagination.page - 1)}
+            type="button"
+          >
+            Previous
+          </button>
+          <button
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={pagination.page >= pagination.totalPages}
+            onClick={() => goToPage(pagination.page + 1)}
+            type="button"
+          >
+            Next
+          </button>
+        </div>
+      </section>
 
       {isAdmin && (
         <section className="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200">

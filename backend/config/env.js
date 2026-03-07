@@ -40,4 +40,8 @@ export const env = {
     .filter(Boolean),
   adminLocalUsername: process.env.ADMIN_LOCAL_USERNAME || '',
   adminLocalPasswordHash: process.env.ADMIN_LOCAL_PASSWORD_HASH || '',
+  sheetSyncRetryIntervalSeconds: Number(process.env.SHEET_SYNC_RETRY_INTERVAL_SECONDS || 120),
+  sheetSyncRetryDelayMinutes: Number(process.env.SHEET_SYNC_RETRY_DELAY_MINUTES || 5),
+  sheetSyncBatchSize: Number(process.env.SHEET_SYNC_BATCH_SIZE || 10),
+  sheetSyncMaxAttempts: Number(process.env.SHEET_SYNC_MAX_ATTEMPTS || 5),
 };

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import MarkingForm from '../components/MarkingForm';
 import { useAuth } from '../context/AuthContext';
 import { submitMark } from '../services/markService';
-import { getStudentById } from '../services/studentService';
+import { getStudentForMarking } from '../services/studentService';
 
 const MarkingPage = () => {
   const { id } = useParams();
@@ -17,7 +17,7 @@ const MarkingPage = () => {
   useEffect(() => {
     const run = async () => {
       try {
-        const data = await getStudentById(id);
+        const data = await getStudentForMarking(id);
         setStudent(data);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load student.');

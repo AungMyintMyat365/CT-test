@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   fetchCurrentUser,
@@ -22,7 +23,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const { user: currentUser } = await fetchCurrentUser();
         setUser(currentUser);
-      } catch (_error) {
+      } catch {
         localStorage.removeItem('ciy_token');
       } finally {
         setLoading(false);

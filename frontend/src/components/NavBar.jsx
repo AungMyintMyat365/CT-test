@@ -7,7 +7,7 @@ const linkClass = ({ isActive }) =>
   }`;
 
 const NavBar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -23,6 +23,23 @@ const NavBar = () => {
           <NavLink className={linkClass} to="/students">
             Students
           </NavLink>
+          <NavLink className={linkClass} to="/due-board">
+            Due Board
+          </NavLink>
+          <NavLink className={linkClass} to="/sync-queue">
+            Sync Queue
+          </NavLink>
+          <NavLink className={linkClass} to="/coach-kpi">
+            Coach KPI
+          </NavLink>
+          <NavLink className={linkClass} to="/reports">
+            Reports
+          </NavLink>
+          {isAdmin && (
+            <NavLink className={linkClass} to="/rules">
+              Rules
+            </NavLink>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">

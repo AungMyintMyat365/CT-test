@@ -34,16 +34,23 @@ assessment-system/
       context/
         AuthContext.jsx
       pages/
+        CoachKpiPage.jsx
         DashboardPage.jsx
+        DueBoardPage.jsx
         LoginPage.jsx
         MarkingPage.jsx
+        ReportsPage.jsx
+        RulesPage.jsx
         StudentProfilePage.jsx
         StudentsPage.jsx
+        SyncQueuePage.jsx
       services/
         api.js
+        assessmentRuleService.js
         assessmentService.js
         authService.js
         markService.js
+        reportService.js
         studentService.js
       utils/
         assessmentLabels.js
@@ -51,21 +58,27 @@ assessment-system/
     config/
       env.js
     controllers/
+      assessmentRulesController.js
       assessmentsController.js
       authController.js
       marksController.js
+      reportsController.js
       studentsController.js
     middleware/
       authMiddleware.js
       errorHandler.js
     routes/
       assessmentRoutes.js
+      assessmentRuleRoutes.js
       authRoutes.js
       marksRoutes.js
+      reportRoutes.js
       studentRoutes.js
     services/
       assessmentLogicService.js
+      auditService.js
       googleSheetsService.js
+      sheetSyncQueueService.js
       supabaseClient.js
     app.js
     server.js
@@ -89,6 +102,11 @@ assessment-system/
   3. Append official record to Google Sheets
   4. Auto-calculate `Total` and `TP` where `TP = (Total / 59) * 100`
 - Dashboard analytics and optional chart visualizations.
+- Due Board for overdue/this-week/upcoming assessments.
+- Google Sheets sync retry queue with failure tracking.
+- Coach KPI page (monthly activity, average score, due students).
+- Admin assessment rules management.
+- CSV reports export for students and assessments.
 - Responsive coach-friendly UI for laptop/tablet.
 
 ## Database Setup (Supabase)
@@ -96,7 +114,10 @@ assessment-system/
 1. Create a new Supabase project.
 2. Open SQL Editor.
 3. Run [`database/schema.sql`](./database/schema.sql).
-4. Copy `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+4. If your DB was created before queue/audit features, run:
+   - [`database/migrations/2026-03-05_marks_category_tp_migration.sql`](./database/migrations/2026-03-05_marks_category_tp_migration.sql)
+   - [`database/migrations/2026-03-07_ops_improvements.sql`](./database/migrations/2026-03-07_ops_improvements.sql)
+5. Copy `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Google OAuth Setup
 
@@ -161,7 +182,10 @@ Frontend runs on `http://localhost:5173`.
 - `GET /students`
 - `POST /students` (ADMIN)
 - `GET /students/:id`
+- `GET /students/:id/marking-context`
 - `GET /students/dashboard/stats`
+- `GET /students/due-board`
+- `GET /students/coach-kpi`
 
 ### Assessments
 
@@ -171,6 +195,8 @@ Frontend runs on `http://localhost:5173`.
 ### Marks
 
 - `POST /marks`
+- `GET /marks/sync-failures`
+- `POST /marks/:id/retry-sync`
 
 `POST /marks` body scoring fields:
 - `sequencing_debugging_score`
@@ -179,6 +205,16 @@ Frontend runs on `http://localhost:5173`.
 - `pattern_recognition_score`
 
 `total_score` and `tp_score` are auto-calculated by backend/database.
+
+### Assessment Rules
+
+- `GET /assessment-rules`
+- `PUT /assessment-rules/:assessment_type` (ADMIN)
+
+### Reports
+
+- `GET /reports/students.csv`
+- `GET /reports/assessments.csv`
 
 ## Deployment Guide
 

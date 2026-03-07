@@ -2,8 +2,13 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import { useAuth } from './context/AuthContext';
 import DashboardPage from './pages/DashboardPage';
+import DueBoardPage from './pages/DueBoardPage';
 import LoginPage from './pages/LoginPage';
 import MarkingPage from './pages/MarkingPage';
+import ReportsPage from './pages/ReportsPage';
+import RulesPage from './pages/RulesPage';
+import SyncQueuePage from './pages/SyncQueuePage';
+import CoachKpiPage from './pages/CoachKpiPage';
 import StudentProfilePage from './pages/StudentProfilePage';
 import StudentsPage from './pages/StudentsPage';
 
@@ -63,6 +68,51 @@ const App = () => (
         </ProtectedShell>
       }
       path="/students"
+    />
+
+    <Route
+      element={
+        <ProtectedShell>
+          <DueBoardPage />
+        </ProtectedShell>
+      }
+      path="/due-board"
+    />
+
+    <Route
+      element={
+        <ProtectedShell>
+          <SyncQueuePage />
+        </ProtectedShell>
+      }
+      path="/sync-queue"
+    />
+
+    <Route
+      element={
+        <ProtectedShell>
+          <CoachKpiPage />
+        </ProtectedShell>
+      }
+      path="/coach-kpi"
+    />
+
+    <Route
+      element={
+        <ProtectedShell>
+          <ReportsPage />
+        </ProtectedShell>
+      }
+      path="/reports"
+    />
+
+    <Route
+      element={
+        <ProtectedShell>
+          <RulesPage />
+        </ProtectedShell>
+      }
+      path="/rules"
     />
 
     <Route
