@@ -10,6 +10,11 @@ export const getStudentById = async (id) => {
   return data;
 };
 
+export const deleteStudent = async (id) => {
+  const { data } = await api.delete(`/students/${id}`);
+  return data;
+};
+
 export const getStudentForMarking = async (id) => {
   const { data } = await api.get(`/students/${id}/marking-context`);
   return data;

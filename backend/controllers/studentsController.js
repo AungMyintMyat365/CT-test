@@ -299,6 +299,22 @@ export const getStudentById = async (req, res, next) => {
   }
 };
 
+export const deleteStudent = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const { data, error } = await supabase.from('students').delete().eq('id', id).select('id');
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    return res.json({ id });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const getDueBoard = async (req, res, next) => {
   try {
     let query = supabase
