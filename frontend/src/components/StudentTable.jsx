@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { assessmentLabels } from '../utils/assessmentLabels';
 
 const getStatusClass = (status) => {
   if (status === 'DUE') return 'bg-red-100 text-red-700';
@@ -14,6 +15,7 @@ const StudentTable = ({ students, onOpenProfile, onOpenMarking }) => (
           <th className="px-4 py-3">Name</th>
           <th className="px-4 py-3">Streamline</th>
           <th className="px-4 py-3">Coach</th>
+          <th className="px-4 py-3">Next Type</th>
           <th className="px-4 py-3">Next Assessment</th>
           <th className="px-4 py-3">Status</th>
           <th className="px-4 py-3">Actions</th>
@@ -22,7 +24,7 @@ const StudentTable = ({ students, onOpenProfile, onOpenMarking }) => (
       <tbody>
         {students.length === 0 ? (
           <tr>
-            <td className="px-4 py-8 text-center text-slate-500" colSpan={6}>
+            <td className="px-4 py-8 text-center text-slate-500" colSpan={7}>
               No students found.
             </td>
           </tr>
@@ -32,6 +34,9 @@ const StudentTable = ({ students, onOpenProfile, onOpenMarking }) => (
               <td className="px-4 py-3 font-semibold text-slate-800">{student.name}</td>
               <td className="px-4 py-3 text-slate-700">{student.streamline}</td>
               <td className="px-4 py-3 text-slate-700">{student.coach}</td>
+              <td className="px-4 py-3 text-slate-700">
+                {assessmentLabels[student.next_assessment_type] || student.next_assessment_type || '-'}
+              </td>
               <td className="px-4 py-3 text-slate-700">
                 {student.next_assessment_date
                   ? format(new Date(student.next_assessment_date), 'dd MMM yyyy')

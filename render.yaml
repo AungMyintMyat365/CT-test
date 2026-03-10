@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: ciy-assessment-api
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: FRONTEND_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: APP_JWT_SECRET
+        sync: false
+      - key: APPROVED_COACH_EMAILS
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: ADMIN_LOCAL_USERNAME
+        sync: false
+      - key: ADMIN_LOCAL_PASSWORD_HASH
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_EMAIL
+        sync: false
+      - key: GOOGLE_PRIVATE_KEY
+        sync: false
+      - key: GOOGLE_SHEETS_SPREADSHEET_ID
+        sync: false
+      - key: GOOGLE_SHEET_TAB_ICT_MDY
+        sync: false
+      - key: GOOGLE_SHEET_TAB_DCT_MDY
+        sync: false
+      - key: GOOGLE_SHEET_TAB_PROFESSIONAL
+        sync: false
+      - key: SHEET_SYNC_RETRY_INTERVAL_SECONDS
+        sync: false
+      - key: SHEET_SYNC_RETRY_DELAY_MINUTES
+        sync: false
+      - key: SHEET_SYNC_BATCH_SIZE
+        sync: false
+      - key: SHEET_SYNC_MAX_ATTEMPTS
+        sync: false

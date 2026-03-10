@@ -35,12 +35,16 @@ const MarkingPage = () => {
       setError('');
       setSuccess('');
 
-      await submitMark({
+      const result = await submitMark({
         ...payload,
         student_id: student.id,
       });
 
-      setSuccess('Marks submitted and synced to Google Sheets.');
+      if (result?.queued_retry) {
+        setSuccess('Marks saved. Google Sheets sync queued — check Sync Queue if needed.');
+      } else {
+        setSuccess('Marks submitted and synced to Google Sheets.');
+      }
       setTimeout(() => navigate(`/students/${student.id}`), 900);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to submit marks.');

@@ -107,6 +107,8 @@ assessment-system/
 - Coach KPI page (monthly activity, average score, due students).
 - Admin assessment rules management.
 - CSV reports export for students and assessments.
+- Student status filtering (DUE / UPCOMING / UNKNOWN).
+- Admin add-student supports latest assessment type/date seeding.
 - Responsive coach-friendly UI for laptop/tablet.
 
 ## Database Setup (Supabase)
@@ -225,7 +227,7 @@ Frontend runs on `http://localhost:5173`.
 
 ### 2) Deploy Backend (Render)
 
-- Create new Web Service from `/backend`.
+- Create new Web Service from `/backend`, or use the blueprint in `render.yaml`.
 - Build command: `npm install`
 - Start command: `npm start`
 - Set environment variables from `backend/.env.example`.
@@ -233,7 +235,7 @@ Frontend runs on `http://localhost:5173`.
 
 ### 3) Deploy Frontend (Vercel)
 
-- Import project and set root directory to `/frontend`.
+- Import project and set root directory to `/frontend` (uses `frontend/vercel.json`).
 - Build command: `npm run build`
 - Output directory: `dist`
 - Set env:
@@ -251,3 +253,7 @@ Frontend runs on `http://localhost:5173`.
 - Use strong `APP_JWT_SECRET`.
 - Restrict logins with `APPROVED_COACH_EMAILS` and `ADMIN_EMAILS`.
 - Use HTTPS in production for both frontend and backend.
+`POST /students` payload fields:
+- `name`, `streamline`, `coach`, `coach_email`
+- For new students: `join_date`
+- For existing students: `latest_assessment_type`, `latest_assessment_date`

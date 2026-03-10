@@ -1,16 +1,43 @@
 import { z } from 'zod';
 import { endOfMonth, formatISO, startOfDay, startOfMonth } from 'date-fns';
 import { getNextAssessment } from '../services/assessmentLogicService.js';
+import {
+  AssessmentType,
+  buildAssessmentSeed,
+  deriveJoinDate,
+} from '../services/assessmentSeedService.js';
 import { supabase } from '../services/supabaseClient.js';
 
-const createStudentSchema = z.object({
-  name: z.string().min(2),
-  join_date: z.string().date(),
-  streamline: z.string().min(1),
-  coach: z.string().min(1),
-  coach_email: z.string().email(),
-  professional_level_completed_at: z.string().date().optional(),
-});
+const assessmentTypeSchema = z.enum([
+  'INITIAL_CT',
+  'INITIAL_CT_SECOND',
+  'PROFESSIONAL',
+  'DEVELOPMENT_CT',
+]);
+
+const createStudentSchema = z
+  .object({
+    name: z.string().min(2),
+    join_date: z.string().date().optional(),
+    latest_assessment_date: z.string().date().optional(),
+    latest_assessment_type: assessmentTypeSchema.optional(),
+    streamline: z.string().min(1),
+    coach: z.string().min(1),
+    coach_email: z.string().email(),
+    professional_level_completed_at: z.string().date().optional(),
+  })
+  .refine((data) => data.join_date || data.latest_assessment_date, {
+    message: 'Join date or latest assessment date is required.',
+    path: ['join_date'],
+  })
+  .refine((data) => !data.latest_assessment_date || data.latest_assessment_type, {
+    message: 'Latest assessment type is required when date is provided.',
+    path: ['latest_assessment_type'],
+  })
+  .refine((data) => !data.latest_assessment_type || data.latest_assessment_date, {
+    message: 'Latest assessment date is required when type is provided.',
+    path: ['latest_assessment_date'],
+  });
 
 const withNextAssessment = async (student) => {
   const { data: assessments, error: assessmentError } = await supabase
@@ -48,10 +75,11 @@ const withNextAssessment = async (student) => {
 
 export const getStudents = async (req, res, next) => {
   try {
-    const { search, coach, streamline, page, pageSize } = req.query;
+    const { search, coach, streamline, page, pageSize, status } = req.query;
     const pageNum = Math.max(1, Number(page || 1));
     const pageSizeNum = Math.min(100, Math.max(1, Number(pageSize || 20)));
     const usePagination = Boolean(page || pageSize);
+    const statusFilter = String(status || '').trim().toUpperCase();
 
     let query = supabase.from('students');
     if (usePagination) {
@@ -80,6 +108,17 @@ export const getStudents = async (req, res, next) => {
 
     if (streamline) {
       query = query.eq('streamline', streamline);
+    }
+
+    if (statusFilter) {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      if (statusFilter === 'DUE') {
+        query = query.lte('next_assessment_date', todayIso);
+      } else if (statusFilter === 'UPCOMING') {
+        query = query.gt('next_assessment_date', todayIso);
+      } else if (statusFilter === 'UNKNOWN') {
+        query = query.is('next_assessment_date', null);
+      }
     }
 
     if (usePagination) {
@@ -126,6 +165,16 @@ export const getStudents = async (req, res, next) => {
 export const createStudent = async (req, res, next) => {
   try {
     const body = createStudentSchema.parse(req.body);
+    const latestAssessmentType = body.latest_assessment_type;
+    const latestAssessmentDate = body.latest_assessment_date;
+
+    let joinDate = body.join_date;
+    if (!joinDate && latestAssessmentType && latestAssessmentDate) {
+      joinDate = deriveJoinDate(latestAssessmentType, latestAssessmentDate);
+    }
+    if (!joinDate) {
+      return res.status(400).json({ message: 'Join date is required.' });
+    }
 
     const { data: coachUser, error: coachError } = await supabase
       .from('users')
@@ -137,16 +186,42 @@ export const createStudent = async (req, res, next) => {
     const { data: student, error } = await supabase
       .from('students')
       .insert({
-        ...body,
+        name: body.name,
+        join_date: joinDate,
+        streamline: body.streamline,
+        coach: body.coach,
         coach_email: body.coach_email.toLowerCase(),
         coach_id: coachUser?.id || null,
-        next_assessment_type: 'INITIAL_CT',
-        next_assessment_date: body.join_date,
+        next_assessment_type: latestAssessmentType ? null : 'INITIAL_CT',
+        next_assessment_date: latestAssessmentType ? null : joinDate,
+        professional_level_completed_at:
+          body.professional_level_completed_at ||
+          (latestAssessmentType === AssessmentType.PROFESSIONAL ? latestAssessmentDate : null),
       })
       .select('*')
       .single();
 
     if (error) throw error;
+
+    if (latestAssessmentType && latestAssessmentDate) {
+      const seed = buildAssessmentSeed({
+        latestType: latestAssessmentType,
+        latestDate: latestAssessmentDate,
+      });
+
+      if (seed.length > 0) {
+        const { error: seedError } = await supabase.from('assessments').insert(
+          seed.map((item) => ({
+            student_id: student.id,
+            assessment_type: item.assessment_type,
+            date: item.date,
+            score: 0,
+            coach: body.coach,
+          })),
+        );
+        if (seedError) throw seedError;
+      }
+    }
 
     const updated = await withNextAssessment(student);
 

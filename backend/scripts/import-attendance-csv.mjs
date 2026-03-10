@@ -2,6 +2,12 @@ import fs from 'node:fs';
 import { parse } from 'csv-parse/sync';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import {
+  AssessmentType,
+  buildAssessmentSeed,
+  deriveJoinDate,
+} from '../services/assessmentSeedService.js';
+import { getNextAssessment } from '../services/assessmentLogicService.js';
 
 dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
 
@@ -15,7 +21,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const ALLOWED_TYPES = new Set(['INITIAL_CT', 'INITIAL_CT_SECOND', 'PROFESSIONAL', 'DEVELOPMENT_CT']);
+const ALLOWED_TYPES = new Set(Object.values(AssessmentType));
 
 const parseLatestDate = (value) => {
   if (!value) return null;
@@ -39,36 +45,6 @@ const parseLatestDate = (value) => {
   return `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day
     .toString()
     .padStart(2, '0')}`;
-};
-
-const addMonthsIso = (isoDate, months) => {
-  const d = new Date(`${isoDate}T00:00:00Z`);
-  const year = d.getUTCFullYear();
-  const month = d.getUTCMonth();
-  const day = d.getUTCDate();
-
-  const targetMonth = month + months;
-  const tYear = year + Math.floor(targetMonth / 12);
-  const tMonth = ((targetMonth % 12) + 12) % 12;
-
-  const endOfMonth = new Date(Date.UTC(tYear, tMonth + 1, 0)).getUTCDate();
-  const tDay = Math.min(day, endOfMonth);
-
-  return new Date(Date.UTC(tYear, tMonth, tDay)).toISOString().slice(0, 10);
-};
-
-const computeNextAssessment = (latestType, latestDate) => {
-  if (latestType === 'INITIAL_CT') {
-    return {
-      nextType: 'INITIAL_CT_SECOND',
-      nextDate: addMonthsIso(latestDate, 6),
-    };
-  }
-
-  return {
-    nextType: 'DEVELOPMENT_CT',
-    nextDate: addMonthsIso(latestDate, 6),
-  };
 };
 
 const raw = fs.readFileSync(CSV_PATH, 'utf8');
@@ -132,18 +108,26 @@ for (const row of payloadRows) {
     continue;
   }
 
-  const { nextType, nextDate } = computeNextAssessment(latestType, latestDate);
+  const joinDate = deriveJoinDate(latestType, latestDate) || latestDate;
+  const seed = buildAssessmentSeed({ latestType, latestDate });
+  const next = getNextAssessment({
+    joinDate,
+    professionalLevelCompletedAt: latestType === AssessmentType.PROFESSIONAL ? latestDate : null,
+    assessments: seed,
+  });
 
   const { data: insertedStudent, error: studentInsertError } = await supabase
     .from('students')
     .insert({
       name: studentName,
-      join_date: latestDate,
+      join_date: joinDate,
       streamline: className,
       coach: coachName,
       coach_email: coachEmail,
-      next_assessment_type: nextType,
-      next_assessment_date: nextDate,
+      next_assessment_type: next.nextAssessmentType,
+      next_assessment_date: next.nextAssessmentDate ? String(next.nextAssessmentDate).slice(0, 10) : null,
+      professional_level_completed_at:
+        latestType === AssessmentType.PROFESSIONAL ? latestDate : null,
     })
     .select('*')
     .single();
@@ -153,17 +137,21 @@ for (const row of payloadRows) {
     continue;
   }
 
-  const { error: assessmentInsertError } = await supabase.from('assessments').insert({
-    student_id: insertedStudent.id,
-    assessment_type: latestType,
-    date: latestDate,
-    score: 0,
-    coach: coachName,
-  });
+  if (seed.length > 0) {
+    const { error: assessmentInsertError } = await supabase.from('assessments').insert(
+      seed.map((item) => ({
+        student_id: insertedStudent.id,
+        assessment_type: item.assessment_type,
+        date: item.date,
+        score: 0,
+        coach: coachName,
+      })),
+    );
 
-  if (assessmentInsertError) {
-    errors.push({ studentName, stage: 'assessment_insert', error: assessmentInsertError.message });
-    continue;
+    if (assessmentInsertError) {
+      errors.push({ studentName, stage: 'assessment_insert', error: assessmentInsertError.message });
+      continue;
+    }
   }
 
   inserted += 1;

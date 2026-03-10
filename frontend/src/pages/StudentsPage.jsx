@@ -7,6 +7,8 @@ import { createStudent, getStudents } from '../services/studentService';
 const initialStudentForm = {
   name: '',
   join_date: new Date().toISOString().slice(0, 10),
+  latest_assessment_date: new Date().toISOString().slice(0, 10),
+  latest_assessment_type: '',
   streamline: '',
   coach: '',
   coach_email: '',
@@ -26,6 +28,7 @@ const StudentsPage = () => {
   const [search, setSearch] = useState('');
   const [filterStreamline, setFilterStreamline] = useState('');
   const [filterCoach, setFilterCoach] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(initialStudentForm);
@@ -66,6 +69,7 @@ const StudentsPage = () => {
         search,
         streamline: filterStreamline || undefined,
         coach: filterCoach || undefined,
+        status: filterStatus || undefined,
       },
       1,
     );
@@ -78,6 +82,7 @@ const StudentsPage = () => {
         search,
         streamline: filterStreamline || undefined,
         coach: filterCoach || undefined,
+        status: filterStatus || undefined,
       },
       nextPage,
     );
@@ -99,7 +104,13 @@ const StudentsPage = () => {
       setCreating(true);
       setError('');
       await createStudent({
-        ...form,
+        name: form.name,
+        streamline: form.streamline,
+        coach: form.coach,
+        coach_email: form.coach_email,
+        join_date: form.latest_assessment_type ? undefined : form.join_date,
+        latest_assessment_type: form.latest_assessment_type || undefined,
+        latest_assessment_date: form.latest_assessment_type ? form.latest_assessment_date : undefined,
         professional_level_completed_at: form.professional_level_completed_at || undefined,
       });
       setForm(initialStudentForm);
@@ -120,7 +131,7 @@ const StudentsPage = () => {
         </div>
       </header>
 
-      <section className="grid gap-3 rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-slate-200 md:grid-cols-4">
+      <section className="grid gap-3 rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-slate-200 md:grid-cols-5">
         <input
           className="rounded-lg border border-slate-300 bg-white px-3 py-2"
           onChange={(event) => setSearch(event.target.value)}
@@ -150,6 +161,16 @@ const StudentsPage = () => {
               {option}
             </option>
           ))}
+        </select>
+        <select
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+          onChange={(event) => setFilterStatus(event.target.value)}
+          value={filterStatus}
+        >
+          <option value="">All statuses</option>
+          <option value="DUE">Due</option>
+          <option value="UPCOMING">Upcoming</option>
+          <option value="UNKNOWN">Unknown</option>
         </select>
         <button
           className="rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-600"
@@ -225,13 +246,34 @@ const StudentsPage = () => {
               type="email"
               value={form.coach_email}
             />
-            <input
+            <select
               className="rounded-lg border border-slate-300 bg-white px-3 py-2"
-              onChange={(event) => setForm((prev) => ({ ...prev, join_date: event.target.value }))}
-              required
-              type="date"
-              value={form.join_date}
-            />
+              onChange={(event) => setForm((prev) => ({ ...prev, latest_assessment_type: event.target.value }))}
+              value={form.latest_assessment_type}
+            >
+              <option value="">No assessment yet (new student)</option>
+              <option value="INITIAL_CT">Initial CT</option>
+              <option value="INITIAL_CT_SECOND">Initial CT Second</option>
+              <option value="PROFESSIONAL">Professional</option>
+              <option value="DEVELOPMENT_CT">Development CT</option>
+            </select>
+            {form.latest_assessment_type ? (
+              <input
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+                onChange={(event) => setForm((prev) => ({ ...prev, latest_assessment_date: event.target.value }))}
+                required
+                type="date"
+                value={form.latest_assessment_date}
+              />
+            ) : (
+              <input
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+                onChange={(event) => setForm((prev) => ({ ...prev, join_date: event.target.value }))}
+                required
+                type="date"
+                value={form.join_date}
+              />
+            )}
             <input
               className="rounded-lg border border-slate-300 bg-white px-3 py-2"
               onChange={(event) =>
