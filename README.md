@@ -119,7 +119,9 @@ assessment-system/
 4. If your DB was created before queue/audit features, run:
    - [`database/migrations/2026-03-05_marks_category_tp_migration.sql`](./database/migrations/2026-03-05_marks_category_tp_migration.sql)
    - [`database/migrations/2026-03-07_ops_improvements.sql`](./database/migrations/2026-03-07_ops_improvements.sql)
-5. Copy `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+5. For professional assessment rubrics, run:
+   - [`database/migrations/2026-03-12_professional_marks.sql`](./database/migrations/2026-03-12_professional_marks.sql)
+6. Copy `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Google OAuth Setup
 
@@ -218,6 +220,11 @@ Frontend runs on `http://localhost:5173`.
 
 - `GET /reports/students.csv`
 - `GET /reports/assessments.csv`
+
+### Professional Assessments
+
+- `GET /professional-marks/templates`
+- `POST /professional-marks`
 
 ## Deployment Guide
 

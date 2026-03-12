@@ -7,6 +7,7 @@ import assessmentRoutes from './routes/assessmentRoutes.js';
 import assessmentRuleRoutes from './routes/assessmentRuleRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import marksRoutes from './routes/marksRoutes.js';
+import professionalMarkRoutes from './routes/professionalMarkRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
@@ -31,6 +32,7 @@ app.use('/auth', authRoutes);
 app.use('/students', studentRoutes);
 app.use('/assessments', assessmentRoutes);
 app.use('/marks', marksRoutes);
+app.use('/professional-marks', professionalMarkRoutes);
 app.use('/assessment-rules', assessmentRuleRoutes);
 app.use('/reports', reportRoutes);
 

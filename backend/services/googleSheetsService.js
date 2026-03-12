@@ -72,3 +72,43 @@ export const appendMarkToSheet = async ({
     },
   });
 };
+
+export const appendProfessionalMarkToSheet = async ({
+  date,
+  assessor,
+  candidate,
+  streamline,
+  templateTitle,
+  totalScore,
+  maxScore,
+  percentage,
+  result,
+  scores,
+}) => {
+  const auth = getGoogleAuthClient();
+  const sheets = google.sheets({ version: 'v4', auth });
+  const sheetTab = env.sheetTabProfessional;
+  const scoresJson = scores ? JSON.stringify(scores) : '';
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: env.googleSheetsSpreadsheetId,
+    range: `${sheetTab}!A:J`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: {
+      values: [
+        [
+          date,
+          assessor || '',
+          candidate || '',
+          streamline || '',
+          templateTitle || '',
+          totalScore,
+          maxScore,
+          percentage,
+          result,
+          scoresJson,
+        ],
+      ],
+    },
+  });
+};

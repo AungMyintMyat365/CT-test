@@ -1,0 +1,94 @@
+[
+  {
+    "key": "3d-design",
+    "title": "Professional Level 3D Design Assessment",
+    "passingScore": 40,
+    "items": [
+      { "id": "shape-cutting", "label": "Shape Cutting", "max": 10 },
+      { "id": "shape-combination", "label": "Shape Combination", "max": 10 },
+      { "id": "tidiness", "label": "Tidiness", "max": 10 },
+      { "id": "creativity", "label": "Creativity", "max": 10 }
+    ]
+  },
+  {
+    "key": "app-lab",
+    "title": "Professional Level App Lab Assessment",
+    "passingScore": 22,
+    "items": [
+      { "id": "session-1-apprentice-level", "label": "Session 1 (Apprentice Level)", "max": 11 },
+      { "id": "session-2-enthusiast-level", "label": "Session 2 (Enthusiast Level)", "max": 11 },
+      { "id": "session-3-professional-level", "label": "Session 3 (Professional Level)", "max": 12 }
+    ]
+  },
+  {
+    "key": "electronics",
+    "title": "Professional Level Electronics Assessment",
+    "passingScore": 12,
+    "items": [
+      { "id": "leds-connected", "label": "LEDs connected to + and - correctly", "max": 3 },
+      { "id": "using-resistor", "label": "Using Resistor", "max": 3 },
+      { "id": "working-circuit", "label": "Working Circuit", "max": 3 },
+      { "id": "traffic-light-sequence", "label": "Traffic Light Sequence code", "max": 1 },
+      { "id": "using-loops", "label": "Using Loops in code", "max": 1 },
+      { "id": "using-broadcast", "label": "Using Broadcast message in code", "max": 1 }
+    ]
+  },
+  {
+    "key": "game-creation",
+    "title": "Professional Level Game Creation Assessment",
+    "passingScore": 23,
+    "items": [
+      { "id": "project-1-apprentice-level", "label": "Project 1 (Apprentice Level)", "max": 4 },
+      { "id": "project-2-enthusiast-level", "label": "Project 2 (Enthusiast Level)", "max": 8 },
+      { "id": "project-3-professional-level", "label": "Project 3 (Professional Level)", "max": 8 },
+      { "id": "creativity-score", "label": "Creativity Score", "max": 10 }
+    ]
+  },
+  {
+    "key": "html-css",
+    "title": "Professional Level HTML/CSS Assessment",
+    "passingScore": 20,
+    "items": [
+      { "id": "session-1", "label": "Session 1", "max": 7 },
+      { "id": "session-2", "label": "Session 2", "max": 5 },
+      { "id": "session-3", "label": "Session 3", "max": 4 },
+      { "id": "session-4", "label": "Session 4", "max": 10 }
+    ]
+  },
+  {
+    "key": "javascript",
+    "title": "Professional Level JavaScript Assessment",
+    "passingScore": 8,
+    "items": [
+      { "id": "making-circles", "label": "Making Circles", "max": 1 },
+      { "id": "using-variables", "label": "Using Variables", "max": 1 },
+      { "id": "animating-circles", "label": "Animating Circles with draw function", "max": 2 },
+      { "id": "reset-circle-position", "label": "Reset Circle Posotion with conditionals", "max": 4 }
+    ]
+  },
+  {
+    "key": "python",
+    "title": "Professional Level Python Assessment",
+    "passingScore": 10,
+    "items": [
+      { "id": "requirement-1", "label": "Requirement 1", "max": 1 },
+      { "id": "requirement-2", "label": "Requirement 2", "max": 2 },
+      { "id": "requirement-3", "label": "Requirement 3", "max": 5 },
+      { "id": "requirement-4", "label": "Requirement 4", "max": 3 },
+      { "id": "requirement-5", "label": "Requirement 5", "max": 3 },
+      { "id": "extensions", "label": "Extensions", "max": 2 }
+    ]
+  },
+  {
+    "key": "scratch",
+    "title": "Professional Level Scratch Assessment",
+    "passingScore": 25,
+    "items": [
+      { "id": "storytelling-introduction", "label": "Storytelling Introduction (Creativity)", "max": 10 },
+      { "id": "smooth-character-control", "label": "Smooth Character control", "max": 5 },
+      { "id": "smooth-transition", "label": "Smooth Transition between Backdrops", "max": 5 },
+      { "id": "obstacles", "label": "Obstacles", "max": 5 },
+      { "id": "winning-condition", "label": "Winning Condition and randomness", "max": 5 }
+    ]
+  }
+]
