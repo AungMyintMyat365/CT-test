@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AssessmentTimeline from '../components/AssessmentTimeline';
 import StudentProfile from '../components/StudentProfile';
-import { getStudentById, deleteStudent } from '../services/studentService';
+import { getStudentById, deleteStudent, updateStudent } from '../services/studentService';
 import { useAuth } from '../context/AuthContext';
 
 const StudentProfilePage = () => {
@@ -12,12 +12,15 @@ const StudentProfilePage = () => {
   const [student, setStudent] = useState(null);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [updatingProfessional, setUpdatingProfessional] = useState(false);
+  const [professionalDate, setProfessionalDate] = useState('');
 
   useEffect(() => {
     const run = async () => {
       try {
         const data = await getStudentById(id);
         setStudent(data);
+        setProfessionalDate(data.professional_level_completed_at || '');
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load student profile.');
       }
@@ -25,6 +28,22 @@ const StudentProfilePage = () => {
 
     run();
   }, [id]);
+
+  const onUpdateProfessional = async () => {
+    if (!student) return;
+    try {
+      setUpdatingProfessional(true);
+      setError('');
+      const updated = await updateStudent(student.id, {
+        professional_level_completed_at: professionalDate || null,
+      });
+      setStudent(updated);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update professional completion.');
+    } finally {
+      setUpdatingProfessional(false);
+    }
+  };
 
   const onDelete = async () => {
     if (!student) return;
@@ -82,6 +101,37 @@ const StudentProfilePage = () => {
       </header>
 
       <StudentProfile student={student} />
+      {isAdmin && (
+        <section className="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200">
+          <h2 className="text-lg font-bold text-slate-900">Professional Completion</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Set this date to make the next assessment type PROFESSIONAL.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <input
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
+              onChange={(event) => setProfessionalDate(event.target.value)}
+              type="date"
+              value={professionalDate}
+            />
+            <button
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={updatingProfessional}
+              onClick={onUpdateProfessional}
+              type="button"
+            >
+              {updatingProfessional ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              onClick={() => setProfessionalDate('')}
+              type="button"
+            >
+              Clear
+            </button>
+          </div>
+        </section>
+      )}
       <AssessmentTimeline
         assessments={student.assessments || []}
         nextAssessmentDate={student.next_assessment_date}

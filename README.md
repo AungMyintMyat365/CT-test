@@ -190,6 +190,7 @@ Frontend runs on `http://localhost:5173`.
 - `GET /students/dashboard/stats`
 - `GET /students/due-board`
 - `GET /students/coach-kpi`
+- `PATCH /students/:id` (ADMIN)
 - `DELETE /students/:id` (ADMIN)
 
 ### Assessments

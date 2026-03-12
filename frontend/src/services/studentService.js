@@ -25,6 +25,11 @@ export const createStudent = async (payload) => {
   return data;
 };
 
+export const updateStudent = async (id, payload) => {
+  const { data } = await api.patch(`/students/${id}`, payload);
+  return data;
+};
+
 export const getDashboardStats = async () => {
   const { data } = await api.get('/students/dashboard/stats');
   return data;

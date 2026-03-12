@@ -39,6 +39,10 @@ const createStudentSchema = z
     path: ['latest_assessment_date'],
   });
 
+const updateStudentSchema = z.object({
+  professional_level_completed_at: z.string().date().nullable().optional(),
+});
+
 const withNextAssessment = async (student) => {
   const { data: assessments, error: assessmentError } = await supabase
     .from('assessments')
@@ -238,7 +242,7 @@ export const getStudentMarkingContext = async (req, res, next) => {
     const { data: student, error } = await supabase
       .from('students')
       .select(
-        'id, name, streamline, coach, coach_email, next_assessment_type, next_assessment_date, join_date',
+        'id, name, streamline, coach, coach_email, next_assessment_type, next_assessment_date, join_date, professional_level_completed_at',
       )
       .eq('id', id)
       .maybeSingle();
@@ -249,7 +253,25 @@ export const getStudentMarkingContext = async (req, res, next) => {
       return res.status(403).json({ message: 'You are not assigned to this student' });
     }
 
-    return res.json(student);
+    const { data: assessments, error: assessmentError } = await supabase
+      .from('assessments')
+      .select('*')
+      .eq('student_id', id);
+    if (assessmentError) throw assessmentError;
+
+    const next = getNextAssessment({
+      joinDate: student.join_date,
+      professionalLevelCompletedAt: student.professional_level_completed_at,
+      assessments: assessments || [],
+    });
+
+    return res.json({
+      ...student,
+      next_assessment_type: next.nextAssessmentType,
+      next_assessment_date: next.nextAssessmentDate
+        ? new Date(next.nextAssessmentDate).toISOString().slice(0, 10)
+        : null,
+    });
   } catch (error) {
     return next(error);
   }
@@ -310,6 +332,29 @@ export const deleteStudent = async (req, res, next) => {
     }
 
     return res.json({ id });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const updateStudent = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const payload = updateStudentSchema.parse(req.body);
+
+    const { data: student, error } = await supabase
+      .from('students')
+      .update({
+        professional_level_completed_at: payload.professional_level_completed_at ?? null,
+      })
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    const updated = await withNextAssessment(student);
+    return res.json(updated);
   } catch (error) {
     return next(error);
   }

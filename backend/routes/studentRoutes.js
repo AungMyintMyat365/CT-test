@@ -7,6 +7,7 @@ import {
   getStudentById,
   getStudentMarkingContext,
   getStudents,
+  updateStudent,
   deleteStudent,
 } from '../controllers/studentsController.js';
 import { authenticate, authorize } from '../middleware/authMiddleware.js';
@@ -20,6 +21,7 @@ router.get('/due-board', authenticate, getDueBoard);
 router.get('/coach-kpi', authenticate, getCoachKpi);
 router.get('/:id/marking-context', authenticate, getStudentMarkingContext);
 router.get('/:id', authenticate, getStudentById);
+router.patch('/:id', authenticate, authorize('ADMIN'), updateStudent);
 router.delete('/:id', authenticate, authorize('ADMIN'), deleteStudent);
 
 export default router;
