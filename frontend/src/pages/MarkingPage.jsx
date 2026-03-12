@@ -25,6 +25,7 @@ const MarkingPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [student, setStudent] = useState(null);
+  const [assessmentType, setAssessmentType] = useState('INITIAL_CT');
   const [templates, setTemplates] = useState([]);
   const [templateError, setTemplateError] = useState('');
   const [error, setError] = useState('');
@@ -36,6 +37,7 @@ const MarkingPage = () => {
       try {
         const data = await getStudentForMarking(id);
         setStudent(data);
+        setAssessmentType(data.next_assessment_type || 'INITIAL_CT');
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load student.');
       }
@@ -45,7 +47,7 @@ const MarkingPage = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!student || student.next_assessment_type !== 'PROFESSIONAL') return;
+    if (!student || assessmentType !== 'PROFESSIONAL') return;
 
     const loadTemplates = async () => {
       try {
@@ -57,7 +59,7 @@ const MarkingPage = () => {
     };
 
     loadTemplates();
-  }, [student]);
+  }, [student, assessmentType]);
 
   const handleSubmit = async (payload) => {
     if (!student) return;
@@ -125,7 +127,24 @@ const MarkingPage = () => {
       {error && <p className="rounded-xl bg-red-50 p-4 font-semibold text-red-700">{error}</p>}
       {success && <p className="rounded-xl bg-emerald-50 p-4 font-semibold text-emerald-700">{success}</p>}
 
-      {student.next_assessment_type === 'PROFESSIONAL' ? (
+      <section className="rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-slate-200">
+        <label className="block text-sm font-semibold text-slate-700" htmlFor="assessment-type-select">
+          Assessment Type
+        </label>
+        <select
+          className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+          id="assessment-type-select"
+          onChange={(event) => setAssessmentType(event.target.value)}
+          value={assessmentType}
+        >
+          <option value="INITIAL_CT">Initial CT</option>
+          <option value="INITIAL_CT_SECOND">Initial CT Second</option>
+          <option value="DEVELOPMENT_CT">Development CT</option>
+          <option value="PROFESSIONAL">Professional</option>
+        </select>
+      </section>
+
+      {assessmentType === 'PROFESSIONAL' ? (
         <>
           {templateError && (
             <p className="rounded-xl bg-red-50 p-4 font-semibold text-red-700">{templateError}</p>
@@ -142,10 +161,11 @@ const MarkingPage = () => {
       ) : (
         <MarkingForm
           coachName={user?.name || student.coach}
-          defaultAssessmentType={student.next_assessment_type}
+          defaultAssessmentType={assessmentType}
           onSubmit={handleSubmit}
           student={student}
           submitting={submitting}
+          key={assessmentType}
         />
       )}
     </main>

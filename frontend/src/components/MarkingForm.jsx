@@ -64,6 +64,7 @@ const MarkingForm = ({ defaultAssessmentType, coachName, student, onSubmit, subm
     }));
   };
 
+
   const handleSubmit = (event) => {
     event.preventDefault();
 
