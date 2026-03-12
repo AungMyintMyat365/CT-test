@@ -227,6 +227,10 @@ Frontend runs on `http://localhost:5173`.
 - `GET /professional-marks/templates`
 - `POST /professional-marks`
 
+### Canva Data Connector
+
+- `GET /canva/professional-marks` (requires `x-canva-api-key`)
+
 ## Deployment Guide
 
 ### 1) Deploy Database (Supabase)

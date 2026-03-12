@@ -88,27 +88,40 @@ export const appendProfessionalMarkToSheet = async ({
   const auth = getGoogleAuthClient();
   const sheets = google.sheets({ version: 'v4', auth });
   const sheetTab = env.sheetTabProfessional;
+  const mode = (env.professionalSheetMode || 'total_only').toLowerCase();
   const scoresJson = scores ? JSON.stringify(scores) : '';
+
+  if (mode === 'full') {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: env.googleSheetsSpreadsheetId,
+      range: `${sheetTab}!A:J`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [
+          [
+            date,
+            assessor || '',
+            candidate || '',
+            streamline || '',
+            templateTitle || '',
+            totalScore,
+            maxScore,
+            percentage,
+            result,
+            scoresJson,
+          ],
+        ],
+      },
+    });
+    return;
+  }
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: env.googleSheetsSpreadsheetId,
-    range: `${sheetTab}!A:J`,
+    range: `${sheetTab}!A:D`,
     valueInputOption: 'USER_ENTERED',
     requestBody: {
-      values: [
-        [
-          date,
-          assessor || '',
-          candidate || '',
-          streamline || '',
-          templateTitle || '',
-          totalScore,
-          maxScore,
-          percentage,
-          result,
-          scoresJson,
-        ],
-      ],
+      values: [[date, candidate || '', templateTitle || '', totalScore]],
     },
   });
 };

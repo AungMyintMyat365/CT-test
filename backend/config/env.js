@@ -20,6 +20,12 @@ export const env = {
   port: Number(process.env.PORT || 4000),
   nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  allowedOrigins: (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+  canvaAppOrigin: process.env.CANVA_APP_ORIGIN || '',
+  allowCanvaOrigins: String(process.env.ALLOW_CANVA_ORIGINS || '').toLowerCase() === 'true',
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   appJwtSecret: process.env.APP_JWT_SECRET,
@@ -40,6 +46,8 @@ export const env = {
     .filter(Boolean),
   adminLocalUsername: process.env.ADMIN_LOCAL_USERNAME || '',
   adminLocalPasswordHash: process.env.ADMIN_LOCAL_PASSWORD_HASH || '',
+  canvaDataApiKey: process.env.CANVA_DATA_API_KEY || '',
+  professionalSheetMode: process.env.PROFESSIONAL_SHEET_MODE || 'total_only',
   sheetSyncRetryIntervalSeconds: Number(process.env.SHEET_SYNC_RETRY_INTERVAL_SECONDS || 120),
   sheetSyncRetryDelayMinutes: Number(process.env.SHEET_SYNC_RETRY_DELAY_MINUTES || 5),
   sheetSyncBatchSize: Number(process.env.SHEET_SYNC_BATCH_SIZE || 10),

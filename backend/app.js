@@ -7,6 +7,7 @@ import assessmentRoutes from './routes/assessmentRoutes.js';
 import assessmentRuleRoutes from './routes/assessmentRuleRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import marksRoutes from './routes/marksRoutes.js';
+import canvaRoutes from './routes/canvaRoutes.js';
 import professionalMarkRoutes from './routes/professionalMarkRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
@@ -14,9 +15,26 @@ import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const app = express();
 
+const allowedOrigins = new Set(
+  [env.frontendUrl, env.canvaAppOrigin, ...env.allowedOrigins].filter(Boolean),
+);
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+  if (env.allowCanvaOrigins && origin.endsWith('.canva-apps.com')) return true;
+  return false;
+};
+
 app.use(
   cors({
-    origin: env.frontendUrl,
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   }),
 );
@@ -33,6 +51,7 @@ app.use('/students', studentRoutes);
 app.use('/assessments', assessmentRoutes);
 app.use('/marks', marksRoutes);
 app.use('/professional-marks', professionalMarkRoutes);
+app.use('/canva', canvaRoutes);
 app.use('/assessment-rules', assessmentRuleRoutes);
 app.use('/reports', reportRoutes);
 
