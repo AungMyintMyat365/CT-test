@@ -1,5 +1,6 @@
 import { supabase } from '../services/supabaseClient.js';
 import { env } from '../config/env.js';
+import { getProfessionalTemplates } from '../services/professionalRubricsService.js';
 
 const requireCanvaKey = (req) => {
   if (!env.canvaDataApiKey) return false;
@@ -22,7 +23,7 @@ export const listProfessionalMarksForCanva = async (req, res, next) => {
     let query = supabase
       .from('professional_marks')
       .select(
-        'id, student_id, template_key, template_title, total_score, max_score, percentage, result, date, created_at, students(name,streamline)',
+        'id, student_id, template_key, template_title, candidate_name, age, streamline, assessor, level, center_code, scores, total_score, max_score, percentage, result, date, created_at',
       )
       .order('date', { ascending: false })
       .limit(limitValue);
@@ -34,17 +35,37 @@ export const listProfessionalMarksForCanva = async (req, res, next) => {
     const { data, error } = await query;
     if (error) throw error;
 
-    const rows = (data || []).map((item) => ({
-      id: item.id,
-      candidate: item.students?.name || '',
-      streamline: item.students?.streamline || '',
-      template_title: item.template_title,
-      total_score: Number(item.total_score || 0),
-      max_score: Number(item.max_score || 0),
-      percentage: Number(item.percentage || 0),
-      result: item.result,
-      date: item.date,
-    }));
+    const templates = getProfessionalTemplates();
+    const itemsByKey = Object.fromEntries(
+      templates.map((template) => [template.key, template.items.map((item) => item.id)]),
+    );
+
+    const rows = (data || []).map((item) => {
+      const row = {
+        id: item.id,
+        candidate: item.candidate_name || '',
+        age: item.age ?? '',
+        streamline: item.streamline || '',
+        assessor: item.assessor || '',
+        level: item.level || '',
+        center_code: item.center_code || '',
+        template_title: item.template_title,
+        template_key: item.template_key,
+        total_score: Number(item.total_score || 0),
+        max_score: Number(item.max_score || 0),
+        percentage: Number(item.percentage || 0),
+        result: item.result,
+        date: item.date,
+      };
+
+      const scoreMap = item.scores || {};
+      const templateItems = itemsByKey[item.template_key] || [];
+      templateItems.forEach((key) => {
+        row[key] = scoreMap[key] ?? '';
+      });
+
+      return row;
+    });
 
     return res.json({ items: rows });
   } catch (error) {

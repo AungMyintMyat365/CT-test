@@ -231,6 +231,9 @@ Frontend runs on `http://localhost:5173`.
 
 - `GET /canva/professional-marks` (requires `x-canva-api-key`)
 
+Professional marks now capture:
+- Candidate (Coder Name), Age, Streamline, Assessor, Level, Center Code
+
 ## Deployment Guide
 
 ### 1) Deploy Database (Supabase)

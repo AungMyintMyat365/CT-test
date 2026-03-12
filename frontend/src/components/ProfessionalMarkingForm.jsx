@@ -7,10 +7,22 @@ const buildDefaultScores = (items) =>
     return acc;
   }, {});
 
-const ProfessionalMarkingForm = ({ templates, defaultTemplateKey, coachName, onSubmit, submitting }) => {
+const ProfessionalMarkingForm = ({
+  templates,
+  defaultTemplateKey,
+  coachName,
+  student,
+  onSubmit,
+  submitting,
+}) => {
   const [templateKey, setTemplateKey] = useState(defaultTemplateKey || '');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [assessor, setAssessor] = useState(coachName || '');
+  const [candidateName, setCandidateName] = useState(student?.name || '');
+  const [age, setAge] = useState('');
+  const [streamline, setStreamline] = useState(student?.streamline || '');
+  const [level, setLevel] = useState(student?.streamline || '');
+  const [centerCode, setCenterCode] = useState('');
   const activeTemplate = useMemo(
     () => templates.find((template) => template.key === templateKey) || templates[0],
     [templateKey, templates],
@@ -52,6 +64,11 @@ const ProfessionalMarkingForm = ({ templates, defaultTemplateKey, coachName, onS
           scores,
           assessor,
           date,
+          candidate_name: candidateName,
+          age: age ? Number(age) : undefined,
+          streamline,
+          level,
+          center_code: centerCode,
         });
       }}
     >
@@ -82,6 +99,69 @@ const ProfessionalMarkingForm = ({ templates, defaultTemplateKey, coachName, onS
             required
             type="text"
             value={assessor}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700" htmlFor="professional-candidate">
+            Candidate (Coder Name)
+          </label>
+          <input
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+            id="professional-candidate"
+            onChange={(event) => setCandidateName(event.target.value)}
+            required
+            type="text"
+            value={candidateName}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700" htmlFor="professional-age">
+            Age
+          </label>
+          <input
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+            id="professional-age"
+            onChange={(event) => setAge(event.target.value)}
+            type="number"
+            min={0}
+            max={120}
+            value={age}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700" htmlFor="professional-streamline">
+            Streamline
+          </label>
+          <input
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+            id="professional-streamline"
+            onChange={(event) => setStreamline(event.target.value)}
+            type="text"
+            value={streamline}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700" htmlFor="professional-level">
+            Level
+          </label>
+          <input
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+            id="professional-level"
+            onChange={(event) => setLevel(event.target.value)}
+            type="text"
+            value={level}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700" htmlFor="professional-center">
+            Center Code
+          </label>
+          <input
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+            id="professional-center"
+            onChange={(event) => setCenterCode(event.target.value)}
+            type="text"
+            value={centerCode}
           />
         </div>
         <div className="md:col-span-2">

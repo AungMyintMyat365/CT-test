@@ -135,6 +135,7 @@ const MarkingPage = () => {
             defaultTemplateKey={guessTemplateKey(student.streamline)}
             onSubmit={handleProfessionalSubmit}
             submitting={submitting}
+            student={student}
             templates={templates}
           />
         </>

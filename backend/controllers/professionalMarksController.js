@@ -7,6 +7,11 @@ const professionalMarkSchema = z.object({
   student_id: z.string().uuid(),
   template_key: z.string().min(1),
   scores: z.record(z.number().min(0)),
+  candidate_name: z.string().min(1).optional(),
+  age: z.number().int().min(0).max(120).optional(),
+  streamline: z.string().optional(),
+  level: z.string().optional(),
+  center_code: z.string().optional(),
   assessor: z.string().min(1).optional(),
   coach: z.string().min(1).optional(),
   date: z.string().date().optional(),
@@ -58,6 +63,8 @@ export const createProfessionalMark = async (req, res, next) => {
     const result = total >= passing ? 'MET' : 'NOT_MET';
     const date = payload.date || new Date().toISOString().slice(0, 10);
     const assessorName = payload.assessor || payload.coach || req.user.name;
+    const candidateName = payload.candidate_name || student.name;
+    const streamline = payload.streamline || student.streamline;
 
     const { data: mark, error: markError } = await supabase
       .from('professional_marks')
@@ -65,6 +72,12 @@ export const createProfessionalMark = async (req, res, next) => {
         student_id: payload.student_id,
         template_key: template.key,
         template_title: template.title,
+        candidate_name: candidateName,
+        age: payload.age ?? null,
+        streamline,
+        assessor: assessorName,
+        level: payload.level ?? null,
+        center_code: payload.center_code ?? null,
         scores,
         total_score: total,
         max_score: maxScore,
@@ -94,8 +107,8 @@ export const createProfessionalMark = async (req, res, next) => {
       await appendProfessionalMarkToSheet({
         date,
         assessor: assessorName,
-        candidate: student.name,
-        streamline: student.streamline,
+        candidate: candidateName,
+        streamline,
         templateTitle: template.title,
         totalScore: total,
         maxScore,
