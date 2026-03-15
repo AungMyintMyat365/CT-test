@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { getNextAssessment } from '../services/assessmentLogicService.js';
+import { bumpCacheVersion, withCache } from '../services/cacheService.js';
 import { supabase } from '../services/supabaseClient.js';
 
 const assessmentSchema = z.object({
@@ -41,20 +42,30 @@ const refreshStudentNextAssessment = async (studentId) => {
 
 export const getAssessments = async (req, res, next) => {
   try {
-    let query = supabase
-      .from('assessments')
-      .select('*, students!inner(id, name, streamline, coach, coach_email)')
-      .order('date', { ascending: false });
+    const cacheIdentity = `${req.user.role}:${req.user.email || ''}`;
+    const payload = await withCache({
+      namespace: 'assessments:list',
+      identity: cacheIdentity,
+      params: {},
+      compute: async () => {
+        let query = supabase
+          .from('assessments')
+          .select('*, students!inner(id, name, streamline, coach, coach_email)')
+          .order('date', { ascending: false });
 
-    if (req.user.role === 'COACH') {
-      query = query.eq('students.coach_email', req.user.email);
-    }
+        if (req.user.role === 'COACH') {
+          query = query.eq('students.coach_email', req.user.email);
+        }
 
-    const { data, error } = await query;
+        const { data, error } = await query;
 
-    if (error) throw error;
+        if (error) throw error;
 
-    return res.json(data || []);
+        return data || [];
+      },
+    });
+
+    return res.json(payload);
   } catch (error) {
     return next(error);
   }
@@ -81,6 +92,7 @@ export const createAssessment = async (req, res, next) => {
     if (error) throw error;
 
     await refreshStudentNextAssessment(payload.student_id);
+    await bumpCacheVersion();
 
     return res.status(201).json(data);
   } catch (error) {

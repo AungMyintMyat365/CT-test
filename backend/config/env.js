@@ -20,6 +20,7 @@ export const env = {
   port: Number(process.env.PORT || 4000),
   nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  trustProxy: process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) : 1,
   allowedOrigins: (process.env.ALLOWED_ORIGINS || '')
     .split(',')
     .map((origin) => origin.trim())
@@ -52,4 +53,14 @@ export const env = {
   sheetSyncRetryDelayMinutes: Number(process.env.SHEET_SYNC_RETRY_DELAY_MINUTES || 5),
   sheetSyncBatchSize: Number(process.env.SHEET_SYNC_BATCH_SIZE || 10),
   sheetSyncMaxAttempts: Number(process.env.SHEET_SYNC_MAX_ATTEMPTS || 5),
+  sheetSyncQueueMode:
+    (process.env.SHEET_SYNC_QUEUE_MODE || '').toLowerCase() ||
+    (process.env.REDIS_URL ? 'redis' : 'db'),
+  sheetSyncWorkerConcurrency: Number(process.env.SHEET_SYNC_WORKER_CONCURRENCY || 2),
+  redisUrl: process.env.REDIS_URL || '',
+  redisTls: String(process.env.REDIS_TLS || '').toLowerCase() === 'true',
+  redisPrefix: process.env.REDIS_PREFIX || 'ciy',
+  redisCacheTtlSeconds: Number(process.env.REDIS_CACHE_TTL_SECONDS || 60),
+  redisRateLimitWindowSeconds: Number(process.env.REDIS_RATE_LIMIT_WINDOW_SECONDS || 900),
+  redisRateLimitMax: Number(process.env.REDIS_RATE_LIMIT_MAX || 60),
 };

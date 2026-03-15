@@ -1,8 +1,11 @@
 import { z } from 'zod';
 import { getNextAssessment } from '../services/assessmentLogicService.js';
+import { bumpCacheVersion } from '../services/cacheService.js';
 import { supabase } from '../services/supabaseClient.js';
 import {
+  enqueueRedisSyncJob,
   getSyncFailures,
+  isRedisQueueEnabled,
   queueMarkSync,
   syncMarkNow,
 } from '../services/sheetSyncQueueService.js';
@@ -199,6 +202,18 @@ export const createMark = async (req, res, next) => {
       retryDelayMinutes: env.sheetSyncRetryDelayMinutes,
     });
 
+    if (!syncResult.synced && syncResult.willRetry && isRedisQueueEnabled()) {
+      const remainingAttempts = Math.max(0, env.sheetSyncMaxAttempts - syncResult.attemptCount);
+      if (remainingAttempts > 0) {
+        try {
+          await enqueueRedisSyncJob({ markId: mark.id, attemptsRemaining: remainingAttempts });
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to enqueue Redis sync job', error.message);
+        }
+      }
+    }
+
     await recordMarkAudit({
       markId: mark.id,
       studentId: payload.student_id,
@@ -218,6 +233,7 @@ export const createMark = async (req, res, next) => {
       studentId: payload.student_id,
     });
 
+    await bumpCacheVersion();
     return res.status(syncResult.synced ? 201 : 202).json({
       ...mark,
       total_score: total,
@@ -275,6 +291,18 @@ export const retryMarkSync = async (req, res, next) => {
       maxAttempts: env.sheetSyncMaxAttempts,
       retryDelayMinutes: env.sheetSyncRetryDelayMinutes,
     });
+
+    if (!result.synced && result.willRetry && isRedisQueueEnabled()) {
+      const remainingAttempts = Math.max(0, env.sheetSyncMaxAttempts - result.attemptCount);
+      if (remainingAttempts > 0) {
+        try {
+          await enqueueRedisSyncJob({ markId, attemptsRemaining: remainingAttempts });
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to enqueue Redis sync job', error.message);
+        }
+      }
+    }
 
     return res.json(result);
   } catch (error) {

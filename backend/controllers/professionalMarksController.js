@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { bumpCacheVersion } from '../services/cacheService.js';
 import { supabase } from '../services/supabaseClient.js';
 import { getProfessionalTemplate, getProfessionalTemplates } from '../services/professionalRubricsService.js';
 import { appendProfessionalMarkToSheet } from '../services/googleSheetsService.js';
@@ -130,6 +131,7 @@ export const createProfessionalMark = async (req, res, next) => {
       })
       .eq('id', mark.id);
 
+    await bumpCacheVersion();
     return res.status(syncStatus === 'SYNCED' ? 201 : 202).json({
       ...mark,
       sheet_sync_status: syncStatus,

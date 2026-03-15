@@ -15,6 +15,8 @@ import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const app = express();
 
+app.set('trust proxy', env.trustProxy);
+
 const allowedOrigins = new Set(
   [env.frontendUrl, env.canvaAppOrigin, ...env.allowedOrigins].filter(Boolean),
 );

@@ -1,9 +1,31 @@
 import { addMinutes } from 'date-fns';
+import { Queue, QueueScheduler, Worker } from 'bullmq';
 import { appendMarkToSheet } from './googleSheetsService.js';
+import { env } from '../config/env.js';
 import { supabase } from './supabaseClient.js';
 import { recordMarkAudit } from './auditService.js';
+import { getRedis, isRedisEnabled } from './redisClient.js';
 
 const QUEUE_TABLE = 'sheet_sync_jobs';
+const QUEUE_NAME = 'sheet-sync';
+
+let sheetQueue = null;
+let sheetScheduler = null;
+let sheetWorker = null;
+
+export const isRedisQueueEnabled = () => env.sheetSyncQueueMode === 'redis' && isRedisEnabled();
+
+const getSheetQueue = () => {
+  if (!isRedisQueueEnabled()) return null;
+  if (sheetQueue) return sheetQueue;
+
+  const connection = getRedis();
+  if (!connection) return null;
+
+  sheetQueue = new Queue(QUEUE_NAME, { connection });
+  sheetScheduler = new QueueScheduler(QUEUE_NAME, { connection });
+  return sheetQueue;
+};
 
 const isMissingQueueTable = (error) => {
   if (!error) return false;
@@ -79,6 +101,28 @@ export const queueMarkSync = async ({ markId, payload, maxAttempts = 5 }) => {
   }
 
   return data;
+};
+
+export const enqueueRedisSyncJob = async ({ markId, attemptsRemaining }) => {
+  if (!isRedisQueueEnabled()) return null;
+
+  const queue = getSheetQueue();
+  if (!queue) return null;
+
+  const attempts = Math.max(1, Number(attemptsRemaining || env.sheetSyncMaxAttempts));
+  const delayMs = env.sheetSyncRetryDelayMinutes * 60 * 1000;
+
+  return queue.add(
+    'sync',
+    { markId },
+    {
+      jobId: markId,
+      attempts,
+      backoff: { type: 'exponential', delay: delayMs },
+      removeOnComplete: true,
+      removeOnFail: false,
+    },
+  );
 };
 
 const getJobWithDependencies = async (markId) => {
@@ -238,7 +282,48 @@ export const syncMarkNow = async ({
   }
 };
 
+export const startRedisSyncWorker = () => {
+  if (!isRedisQueueEnabled()) return null;
+  if (sheetWorker) return sheetWorker;
+
+  const connection = getRedis();
+  if (!connection) return null;
+
+  getSheetQueue();
+
+  sheetWorker = new Worker(
+    QUEUE_NAME,
+    async (job) => {
+      const result = await syncMarkNow({
+        markId: job.data.markId,
+        actorName: 'REDIS_WORKER',
+        actorEmail: 'system@local',
+        maxAttempts: env.sheetSyncMaxAttempts,
+        retryDelayMinutes: env.sheetSyncRetryDelayMinutes,
+      });
+
+      if (!result.synced) {
+        throw new Error(result.errorMessage || 'Sheet sync failed');
+      }
+
+      return result;
+    },
+    { connection, concurrency: env.sheetSyncWorkerConcurrency },
+  );
+
+  sheetWorker.on('failed', (job, error) => {
+    // eslint-disable-next-line no-console
+    console.error(`Sheet sync job ${job?.id || 'unknown'} failed`, error?.message);
+  });
+
+  return sheetWorker;
+};
+
 export const processPendingSyncJobs = async ({ limit = 10, retryDelayMinutes = 5 } = {}) => {
+  if (isRedisQueueEnabled()) {
+    return { processed: 0, success: 0, failed: 0 };
+  }
+
   const nowIso = new Date().toISOString();
   const { data: jobs, error } = await supabase
     .from(QUEUE_TABLE)
