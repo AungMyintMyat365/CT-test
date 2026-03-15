@@ -1,5 +1,5 @@
 import { addMinutes } from 'date-fns';
-import { Queue, QueueScheduler, Worker } from 'bullmq';
+import { Queue, JobScheduler, Worker } from 'bullmq';
 import { appendMarkToSheet } from './googleSheetsService.js';
 import { env } from '../config/env.js';
 import { supabase } from './supabaseClient.js';
@@ -23,7 +23,7 @@ const getSheetQueue = () => {
   if (!connection) return null;
 
   sheetQueue = new Queue(QUEUE_NAME, { connection });
-  sheetScheduler = new QueueScheduler(QUEUE_NAME, { connection });
+  sheetScheduler = new JobScheduler(QUEUE_NAME, { connection });
   return sheetQueue;
 };
 
