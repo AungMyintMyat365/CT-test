@@ -39,8 +39,3 @@ export const getDueBoard = async () => {
   const { data } = await api.get('/students/due-board');
   return data;
 };
-
-export const getCoachKpi = async () => {
-  const { data } = await api.get('/students/coach-kpi');
-  return data;
-};

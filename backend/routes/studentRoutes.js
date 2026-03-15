@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import {
   createStudent,
-  getCoachKpi,
   getDashboardStats,
   getDueBoard,
   getStudentById,
@@ -18,7 +17,6 @@ router.get('/', authenticate, getStudents);
 router.post('/', authenticate, authorize('ADMIN'), createStudent);
 router.get('/dashboard/stats', authenticate, getDashboardStats);
 router.get('/due-board', authenticate, getDueBoard);
-router.get('/coach-kpi', authenticate, getCoachKpi);
 router.get('/:id/marking-context', authenticate, getStudentMarkingContext);
 router.get('/:id', authenticate, getStudentById);
 router.patch('/:id', authenticate, authorize('ADMIN'), updateStudent);

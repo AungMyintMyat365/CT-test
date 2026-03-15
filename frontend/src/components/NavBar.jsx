@@ -29,12 +29,6 @@ const NavBar = () => {
           <NavLink className={linkClass} to="/sync-queue">
             Sync Queue
           </NavLink>
-          <NavLink className={linkClass} to="/coach-kpi">
-            Coach KPI
-          </NavLink>
-          <NavLink className={linkClass} to="/reports">
-            Reports
-          </NavLink>
           {isAdmin && (
             <NavLink className={linkClass} to="/rules">
               Rules

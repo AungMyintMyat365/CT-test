@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { endOfMonth, formatISO, startOfDay, startOfMonth } from 'date-fns';
+import { formatISO, startOfDay } from 'date-fns';
 import { getNextAssessment } from '../services/assessmentLogicService.js';
 import {
   AssessmentType,
@@ -431,89 +431,6 @@ export const getDueBoard = async (req, res, next) => {
             noDate: board.noDate.length,
           },
         };
-      },
-    });
-
-    return res.json(payload);
-  } catch (error) {
-    return next(error);
-  }
-};
-
-export const getCoachKpi = async (req, res, next) => {
-  try {
-    const cacheIdentity = `${req.user.role}:${req.user.email || ''}`;
-    const payload = await withCache({
-      namespace: 'students:coach-kpi',
-      identity: cacheIdentity,
-      params: {},
-      compute: async () => {
-        let assessmentsQuery = supabase
-          .from('assessments')
-          .select('id, coach, score, date, student_id')
-          .order('date', { ascending: false });
-
-        let studentsQuery = supabase
-          .from('students')
-          .select('id, coach, coach_email, next_assessment_date');
-
-        if (req.user.role === 'COACH') {
-          assessmentsQuery = assessmentsQuery.eq('coach', req.user.name);
-          studentsQuery = studentsQuery.eq('coach_email', req.user.email);
-        }
-
-        const [
-          { data: assessments, error: assessmentsError },
-          { data: students, error: studentsError },
-        ] = await Promise.all([assessmentsQuery, studentsQuery]);
-        if (assessmentsError) throw assessmentsError;
-        if (studentsError) throw studentsError;
-
-        const monthStart = startOfMonth(new Date()).toISOString().slice(0, 10);
-        const monthEnd = endOfMonth(new Date()).toISOString().slice(0, 10);
-        const todayIso = formatISO(startOfDay(new Date()), { representation: 'date' });
-
-        const dueByCoach = {};
-        for (const student of students || []) {
-          if (!student.next_assessment_date || student.next_assessment_date > todayIso) continue;
-          dueByCoach[student.coach] = (dueByCoach[student.coach] || 0) + 1;
-        }
-
-        const grouped = {};
-        for (const item of assessments || []) {
-          if (!grouped[item.coach]) {
-            grouped[item.coach] = {
-              coach: item.coach,
-              totalAssessments: 0,
-              scoreTotal: 0,
-              assessmentsThisMonth: 0,
-              activeStudents: new Set(),
-            };
-          }
-
-          grouped[item.coach].totalAssessments += 1;
-          grouped[item.coach].scoreTotal += item.score || 0;
-          grouped[item.coach].activeStudents.add(item.student_id);
-          if (item.date >= monthStart && item.date <= monthEnd) {
-            grouped[item.coach].assessmentsThisMonth += 1;
-          }
-        }
-
-        const kpis = Object.values(grouped).map((item) => ({
-          coach: item.coach,
-          totalAssessments: item.totalAssessments,
-          avgScore: Number((item.scoreTotal / Math.max(1, item.totalAssessments)).toFixed(2)),
-          assessmentsThisMonth: item.assessmentsThisMonth,
-          activeStudents: item.activeStudents.size,
-          dueStudents: dueByCoach[item.coach] || 0,
-        }));
-
-        return kpis.sort((a, b) => {
-          if (b.assessmentsThisMonth !== a.assessmentsThisMonth) {
-            return b.assessmentsThisMonth - a.assessmentsThisMonth;
-          }
-          return b.avgScore - a.avgScore;
-        });
       },
     });
 
