@@ -16,6 +16,11 @@ const localAdminSchema = z.object({
   password: z.string().min(1),
 });
 
+const localLoginSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
+
 const buildAuthResponse = (user) => {
   const token = jwt.sign(
     {
@@ -147,6 +152,62 @@ export const localAdminLogin = async (req, res, next) => {
       const { data, error } = await supabase
         .from('users')
         .update(adminUserPayload)
+        .eq('id', existingUser.id)
+        .select('*')
+        .single();
+      if (error) throw error;
+      user = data;
+    }
+
+    return res.status(200).json(buildAuthResponse(user));
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const localLogin = async (req, res, next) => {
+  try {
+    const { username, password } = localLoginSchema.parse(req.body);
+
+    const { data: localAccount, error: localError } = await supabase
+      .from('local_accounts')
+      .select('*')
+      .eq('username', username)
+      .maybeSingle();
+    if (localError) throw localError;
+    if (!localAccount || !localAccount.is_active) {
+      return res.status(401).json({ message: 'Invalid local credentials' });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, localAccount.password_hash);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid local credentials' });
+    }
+
+    const localEmail = `${username.toLowerCase()}@local.ciy.club`;
+    const { data: existingUser, error: getError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', localEmail)
+      .maybeSingle();
+    if (getError) throw getError;
+
+    const userPayload = {
+      email: localEmail,
+      full_name: username,
+      role: localAccount.role,
+      is_active: true,
+    };
+
+    let user = existingUser;
+    if (!existingUser) {
+      const { data, error } = await supabase.from('users').insert(userPayload).select('*').single();
+      if (error) throw error;
+      user = data;
+    } else {
+      const { data, error } = await supabase
+        .from('users')
+        .update(userPayload)
         .eq('id', existingUser.id)
         .select('*')
         .single();

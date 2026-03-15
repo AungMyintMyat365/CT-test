@@ -4,6 +4,7 @@ import {
   fetchCurrentUser,
   loginWithAdminCredentials,
   loginWithGoogleCredential,
+  loginWithLocalCredentials,
 } from '../services/authService';
 
 const AuthContext = createContext(null);
@@ -45,6 +46,12 @@ export const AuthProvider = ({ children }) => {
     setUser(data.user);
   };
 
+  const loginLocal = async ({ username, password }) => {
+    const data = await loginWithLocalCredentials({ username, password });
+    localStorage.setItem('ciy_token', data.token);
+    setUser(data.user);
+  };
+
   const logout = () => {
     localStorage.removeItem('ciy_token');
     setUser(null);
@@ -56,6 +63,7 @@ export const AuthProvider = ({ children }) => {
       loading,
       login,
       loginAdmin,
+      loginLocal,
       logout,
       isAuthenticated: Boolean(user),
       isAdmin: user?.role === 'ADMIN',

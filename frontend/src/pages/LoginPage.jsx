@@ -10,7 +10,11 @@ const LoginPage = () => {
     username: '',
     password: '',
   });
-  const { login, loginAdmin } = useAuth();
+  const [localForm, setLocalForm] = useState({
+    username: '',
+    password: '',
+  });
+  const { login, loginAdmin, loginLocal } = useAuth();
   const navigate = useNavigate();
 
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -40,6 +44,20 @@ const LoginPage = () => {
     }
   };
 
+  const handleLocalLogin = async (event) => {
+    event.preventDefault();
+    try {
+      setLoading(true);
+      setError('');
+      await loginLocal(localForm);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Local login failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <section className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
@@ -52,6 +70,45 @@ const LoginPage = () => {
         <div className="mt-6 flex justify-center">
           <GoogleLogin onError={() => setError('Google authentication popup failed.')} onSuccess={handleGoogleSuccess} />
         </div>
+
+        <div className="my-6 h-px bg-slate-200" />
+
+        <form className="space-y-3" onSubmit={handleLocalLogin}>
+          <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-slate-700">Local Coach Login</h2>
+          <input
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+            onChange={(event) =>
+              setLocalForm((prev) => ({
+                ...prev,
+                username: event.target.value,
+              }))
+            }
+            placeholder="Username"
+            required
+            type="text"
+            value={localForm.username}
+          />
+          <input
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+            onChange={(event) =>
+              setLocalForm((prev) => ({
+                ...prev,
+                password: event.target.value,
+              }))
+            }
+            placeholder="Password"
+            required
+            type="password"
+            value={localForm.password}
+          />
+          <button
+            className="w-full rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+            disabled={loading}
+            type="submit"
+          >
+            {loading ? 'Signing in...' : 'Login as Coach'}
+          </button>
+        </form>
 
         <div className="my-6 h-px bg-slate-200" />
 
