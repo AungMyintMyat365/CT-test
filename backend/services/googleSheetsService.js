@@ -1,10 +1,11 @@
 import { google } from 'googleapis';
 import { env } from '../config/env.js';
+import { getEffectiveGoogleSheetsSettings } from './settingsService.js';
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
 const getGoogleAuthClient = () => {
-  if (!env.googleServiceAccountEmail || !env.googlePrivateKey || !env.googleSheetsSpreadsheetId) {
+  if (!env.googleServiceAccountEmail || !env.googlePrivateKey) {
     throw new Error('Google Sheets credentials are not configured');
   }
 
@@ -15,10 +16,10 @@ const getGoogleAuthClient = () => {
   });
 };
 
-const getSheetTab = (assessmentType) => {
-  if (assessmentType === 'DEVELOPMENT_CT') return env.sheetTabDctMdy;
-  if (assessmentType === 'PROFESSIONAL') return env.sheetTabProfessional;
-  return env.sheetTabIctMdy;
+const getSheetTab = (assessmentType, tabs) => {
+  if (assessmentType === 'DEVELOPMENT_CT') return tabs.tabDctMdy;
+  if (assessmentType === 'PROFESSIONAL') return tabs.tabProfessional;
+  return tabs.tabIctMdy;
 };
 
 export const appendMarkToSheet = async ({
@@ -40,12 +41,17 @@ export const appendMarkToSheet = async ({
   status,
   date,
 }) => {
+  const settings = await getEffectiveGoogleSheetsSettings();
+  if (!settings.spreadsheetId) {
+    throw new Error('Google Sheets spreadsheet ID is not configured');
+  }
+
   const auth = getGoogleAuthClient();
   const sheets = google.sheets({ version: 'v4', auth });
-  const sheetTab = getSheetTab(assessmentType);
+  const sheetTab = getSheetTab(assessmentType, settings);
 
   await sheets.spreadsheets.values.append({
-    spreadsheetId: env.googleSheetsSpreadsheetId,
+    spreadsheetId: settings.spreadsheetId,
     range: `${sheetTab}!A:P`,
     valueInputOption: 'USER_ENTERED',
     requestBody: {
@@ -85,15 +91,20 @@ export const appendProfessionalMarkToSheet = async ({
   result,
   scores,
 }) => {
+  const settings = await getEffectiveGoogleSheetsSettings();
+  if (!settings.spreadsheetId) {
+    throw new Error('Google Sheets spreadsheet ID is not configured');
+  }
+
   const auth = getGoogleAuthClient();
   const sheets = google.sheets({ version: 'v4', auth });
-  const sheetTab = env.sheetTabProfessional;
-  const mode = (env.professionalSheetMode || 'total_only').toLowerCase();
+  const sheetTab = settings.tabProfessional;
+  const mode = (settings.professionalSheetMode || 'total_only').toLowerCase();
   const scoresJson = scores ? JSON.stringify(scores) : '';
 
   if (mode === 'full') {
     await sheets.spreadsheets.values.append({
-      spreadsheetId: env.googleSheetsSpreadsheetId,
+      spreadsheetId: settings.spreadsheetId,
       range: `${sheetTab}!A:J`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
@@ -117,7 +128,7 @@ export const appendProfessionalMarkToSheet = async ({
   }
 
   await sheets.spreadsheets.values.append({
-    spreadsheetId: env.googleSheetsSpreadsheetId,
+    spreadsheetId: settings.spreadsheetId,
     range: `${sheetTab}!A:D`,
     valueInputOption: 'USER_ENTERED',
     requestBody: {

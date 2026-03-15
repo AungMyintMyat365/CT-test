@@ -147,6 +147,20 @@ create index if not exists idx_students_next_assessment_date on public.students 
 create index if not exists idx_assessments_student_date on public.assessments (student_id, date desc);
 create index if not exists idx_marks_student_created_at on public.marks (student_id, created_at desc);
 
+-- App settings key/value store.
+create table if not exists public.app_settings (
+  key text primary key,
+  value text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists trg_app_settings_updated_at on public.app_settings;
+create trigger trg_app_settings_updated_at
+before update on public.app_settings
+for each row
+execute function public.set_updated_at();
+
 -- Professional assessment marks (dynamic rubric).
 create table if not exists public.professional_marks (
   id uuid primary key default gen_random_uuid(),

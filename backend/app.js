@@ -10,6 +10,7 @@ import marksRoutes from './routes/marksRoutes.js';
 import canvaRoutes from './routes/canvaRoutes.js';
 import professionalMarkRoutes from './routes/professionalMarkRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import settingsRoutes from './routes/settingsRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
@@ -56,6 +57,7 @@ app.use('/professional-marks', professionalMarkRoutes);
 app.use('/canva', canvaRoutes);
 app.use('/assessment-rules', assessmentRuleRoutes);
 app.use('/reports', reportRoutes);
+app.use('/settings', settingsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

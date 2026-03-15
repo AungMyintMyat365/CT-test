@@ -40,6 +40,11 @@ const NavBar = () => {
               Rules
             </NavLink>
           )}
+          {isAdmin && (
+            <NavLink className={linkClass} to="/settings">
+              Settings
+            </NavLink>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">

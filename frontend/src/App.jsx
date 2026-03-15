@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import MarkingPage from './pages/MarkingPage';
 import ReportsPage from './pages/ReportsPage';
 import RulesPage from './pages/RulesPage';
+import SettingsPage from './pages/SettingsPage';
 import SyncQueuePage from './pages/SyncQueuePage';
 import CoachKpiPage from './pages/CoachKpiPage';
 import StudentProfilePage from './pages/StudentProfilePage';
@@ -113,6 +114,15 @@ const App = () => (
         </ProtectedShell>
       }
       path="/rules"
+    />
+
+    <Route
+      element={
+        <ProtectedShell>
+          <SettingsPage />
+        </ProtectedShell>
+      }
+      path="/settings"
     />
 
     <Route
