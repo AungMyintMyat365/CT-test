@@ -14,3 +14,8 @@ export const retrySyncMark = async (markId) => {
   const { data } = await api.post(`/marks/${markId}/retry-sync`, {});
   return data;
 };
+
+export const updateMark = async (markId, payload) => {
+  const { data } = await api.patch(`/marks/${markId}`, payload);
+  return data;
+};

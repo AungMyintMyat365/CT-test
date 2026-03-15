@@ -3,6 +3,7 @@ import {
   getGoogleSheetsSettings,
   updateGoogleSheetsSettings,
 } from '../services/settingsService.js';
+import { verifyGoogleSheetsConnection } from '../services/googleSheetsService.js';
 
 const googleSheetsSchema = z
   .object({
@@ -30,6 +31,18 @@ export const updateGoogleSheetsConfig = async (req, res, next) => {
     const patch = googleSheetsSchema.parse(req.body);
     const payload = await updateGoogleSheetsSettings(patch);
     return res.json(payload);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const testGoogleSheetsConfig = async (_req, res, next) => {
+  try {
+    const result = await verifyGoogleSheetsConnection();
+    if (!result.ok) {
+      return res.status(400).json(result);
+    }
+    return res.json(result);
   } catch (error) {
     return next(error);
   }

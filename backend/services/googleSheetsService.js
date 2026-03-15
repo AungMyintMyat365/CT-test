@@ -136,3 +136,32 @@ export const appendProfessionalMarkToSheet = async ({
     },
   });
 };
+
+export const verifyGoogleSheetsConnection = async () => {
+  const settings = await getEffectiveGoogleSheetsSettings();
+  if (!settings.spreadsheetId) {
+    throw new Error('Google Sheets spreadsheet ID is not configured');
+  }
+
+  const auth = getGoogleAuthClient();
+  const sheets = google.sheets({ version: 'v4', auth });
+
+  const response = await sheets.spreadsheets.get({
+    spreadsheetId: settings.spreadsheetId,
+  });
+
+  const sheetTitles = (response.data.sheets || [])
+    .map((sheet) => sheet.properties?.title)
+    .filter(Boolean);
+
+  const requiredTabs = [settings.tabIctMdy, settings.tabDctMdy, settings.tabProfessional].filter(Boolean);
+  const missingTabs = requiredTabs.filter((tab) => !sheetTitles.includes(tab));
+
+  return {
+    ok: missingTabs.length === 0,
+    spreadsheetId: settings.spreadsheetId,
+    spreadsheetTitle: response.data.properties?.title || '',
+    sheetTitles,
+    missingTabs,
+  };
+};

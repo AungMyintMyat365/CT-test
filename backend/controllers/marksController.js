@@ -40,6 +40,15 @@ const retrySchema = z.object({
   mark_id: z.string().uuid().optional(),
 });
 
+const updateMarkSchema = z.object({
+  sequencing_debugging_score: z.number().int().min(0).max(59),
+  decomposition_score: z.number().int().min(0).max(59),
+  abstraction_score: z.number().int().min(0).max(59),
+  pattern_recognition_score: z.number().int().min(0).max(59),
+  assessor: z.string().min(1).optional(),
+  date: z.string().date().optional(),
+});
+
 const insertMark = async ({ payload, assessorName, total, tpScore }) => {
   const { data: newSchemaMark, error: newSchemaError } = await supabase
     .from('marks')
@@ -241,6 +250,169 @@ export const createMark = async (req, res, next) => {
       sheet_status: syncResult.status,
       sheet_error: syncResult.errorMessage || null,
       queued_retry: !syncResult.synced,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const updateMark = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const payload = updateMarkSchema.parse(req.body);
+
+    const { data: mark, error: markError } = await supabase
+      .from('marks')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (markError) throw markError;
+    if (!mark) return res.status(404).json({ message: 'Mark not found' });
+
+    const { data: student, error: studentError } = await supabase
+      .from('students')
+      .select('*')
+      .eq('id', mark.student_id)
+      .maybeSingle();
+    if (studentError) throw studentError;
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+    if (req.user.role === 'COACH' && student.coach_email !== req.user.email) {
+      return res.status(403).json({ message: 'You are not assigned to this student' });
+    }
+
+    const total =
+      payload.sequencing_debugging_score +
+      payload.decomposition_score +
+      payload.abstraction_score +
+      payload.pattern_recognition_score;
+    const tpScore = Number(((total / 59) * 100).toFixed(2));
+    const assessorName = payload.assessor || mark.coach || student.coach || req.user.name;
+    const date = payload.date || new Date().toISOString().slice(0, 10);
+
+    const oldPayload = {
+      sequencing_debugging_score: mark.sequencing_debugging_score ?? mark.logic_score ?? 0,
+      decomposition_score: mark.decomposition_score ?? mark.algorithm_score ?? 0,
+      abstraction_score: mark.abstraction_score ?? mark.problem_score ?? 0,
+      pattern_recognition_score: mark.pattern_recognition_score ?? mark.pattern_score ?? 0,
+      total_score: mark.total_score ?? 0,
+      tp_score: mark.tp_score ?? 0,
+      coach: mark.coach,
+    };
+
+    const { data: updatedMark, error: updateError } = await supabase
+      .from('marks')
+      .update({
+        sequencing_debugging_score: payload.sequencing_debugging_score,
+        decomposition_score: payload.decomposition_score,
+        abstraction_score: payload.abstraction_score,
+        pattern_recognition_score: payload.pattern_recognition_score,
+        total_score: total,
+        tp_score: tpScore,
+        coach: assessorName,
+        sheet_sync_status: 'PENDING',
+      })
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (updateError) throw updateError;
+
+    const { data: assessment, error: assessmentError } = await supabase
+      .from('assessments')
+      .select('id, date')
+      .eq('student_id', student.id)
+      .eq('assessment_type', mark.assessment_type)
+      .order('date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (assessmentError) throw assessmentError;
+    if (assessment?.id) {
+      const { error: assessmentUpdateError } = await supabase
+        .from('assessments')
+        .update({ score: Math.round(tpScore) })
+        .eq('id', assessment.id);
+      if (assessmentUpdateError) throw assessmentUpdateError;
+    }
+
+    const sheetPayload = {
+      assessmentType: mark.assessment_type,
+      assessor: assessorName,
+      coderId: '',
+      campusCode: '',
+      candidate: student.name,
+      age: '',
+      email: student.coach_email || '',
+      level: student.streamline || '',
+      sequencingDebuggingScore: payload.sequencing_debugging_score,
+      decompositionScore: payload.decomposition_score,
+      abstractionScore: payload.abstraction_score,
+      patternRecognitionScore: payload.pattern_recognition_score,
+      totalScore: total,
+      tpScore,
+      sendReport: 'FALSE',
+      status: 'UPDATED',
+      date,
+    };
+
+    await queueMarkSync({
+      markId: updatedMark.id,
+      payload: sheetPayload,
+      maxAttempts: env.sheetSyncMaxAttempts,
+    });
+
+    const syncResult = await syncMarkNow({
+      markId: updatedMark.id,
+      payload: sheetPayload,
+      actorName: req.user.name,
+      actorEmail: req.user.email,
+      maxAttempts: env.sheetSyncMaxAttempts,
+      retryDelayMinutes: env.sheetSyncRetryDelayMinutes,
+    });
+
+    if (!syncResult.synced && syncResult.willRetry && isRedisQueueEnabled()) {
+      const remainingAttempts = Math.max(0, env.sheetSyncMaxAttempts - syncResult.attemptCount);
+      if (remainingAttempts > 0) {
+        try {
+          await enqueueRedisSyncJob({ markId: updatedMark.id, attemptsRemaining: remainingAttempts });
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to enqueue Redis sync job', error.message);
+        }
+      }
+    }
+
+    await recordMarkAudit({
+      markId: updatedMark.id,
+      studentId: student.id,
+      action: 'MARK_UPDATED',
+      oldPayload,
+      newPayload: {
+        sequencing_debugging_score: payload.sequencing_debugging_score,
+        decomposition_score: payload.decomposition_score,
+        abstraction_score: payload.abstraction_score,
+        pattern_recognition_score: payload.pattern_recognition_score,
+        total_score: total,
+        tp_score: tpScore,
+        coach: assessorName,
+        sheet_status: syncResult.status,
+      },
+      actorName: req.user.name,
+      actorEmail: req.user.email,
+    });
+
+    await refreshStudentNextAssessment({
+      student,
+      studentId: student.id,
+    });
+
+    await bumpCacheVersion();
+
+    return res.json({
+      ...updatedMark,
+      total_score: total,
+      tp_score: tpScore,
+      sheet_status: syncResult.status,
+      sheet_error: syncResult.errorMessage || null,
     });
   } catch (error) {
     return next(error);

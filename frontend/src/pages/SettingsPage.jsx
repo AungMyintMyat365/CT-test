@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getGoogleSheetsSettings, updateGoogleSheetsSettings } from '../services/settingsService';
+import {
+  getGoogleSheetsSettings,
+  testGoogleSheetsSettings,
+  updateGoogleSheetsSettings,
+} from '../services/settingsService';
 
 const SettingsPage = () => {
   const { isAdmin } = useAuth();
@@ -16,6 +20,8 @@ const SettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
 
   const loadSettings = async () => {
     try {
@@ -57,6 +63,23 @@ const SettingsPage = () => {
       setError(err.response?.data?.message || 'Failed to save settings.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTest = async () => {
+    try {
+      setTesting(true);
+      setError('');
+      setSuccess('');
+      const result = await testGoogleSheetsSettings();
+      setTestResult(result);
+      setSuccess('Google Sheets connection is valid.');
+    } catch (err) {
+      const payload = err.response?.data;
+      setTestResult(payload || null);
+      setError(payload?.missingTabs?.length ? 'Missing required sheet tabs.' : 'Connection test failed.');
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -167,14 +190,39 @@ const SettingsPage = () => {
               <p className="text-sm text-slate-500">
                 Status: {stored?.spreadsheet_id ? 'Using admin override' : 'Using environment defaults'}
               </p>
-              <button
-                className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-                disabled={saving}
-                type="submit"
-              >
-                {saving ? 'Saving...' : 'Save Settings'}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={testing}
+                  onClick={handleTest}
+                  type="button"
+                >
+                  {testing ? 'Testing...' : 'Test Connection'}
+                </button>
+                <button
+                  className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  disabled={saving}
+                  type="submit"
+                >
+                  {saving ? 'Saving...' : 'Save Settings'}
+                </button>
+              </div>
             </div>
+
+            {testResult && (
+              <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+                <p>
+                  Sheet: <b>{testResult.spreadsheetTitle || 'Unknown'}</b>
+                </p>
+                {testResult.missingTabs?.length ? (
+                  <p className="mt-1 text-red-600">
+                    Missing tabs: {testResult.missingTabs.join(', ')}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-emerald-600">All required tabs found.</p>
+                )}
+              </div>
+            )}
           </form>
         )}
       </section>

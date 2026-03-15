@@ -4,16 +4,24 @@ import AssessmentTimeline from '../components/AssessmentTimeline';
 import StudentProfile from '../components/StudentProfile';
 import { getStudentById, deleteStudent, updateStudent } from '../services/studentService';
 import { useAuth } from '../context/AuthContext';
+import { updateMark } from '../services/markService';
+import { assessmentLabels } from '../utils/assessmentLabels';
+
+const getScoreValue = (mark, primary, fallback) =>
+  Number(mark?.[primary] ?? mark?.[fallback] ?? 0);
 
 const StudentProfilePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [student, setStudent] = useState(null);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [updatingProfessional, setUpdatingProfessional] = useState(false);
   const [professionalDate, setProfessionalDate] = useState('');
+  const [editingMarkId, setEditingMarkId] = useState('');
+  const [markForm, setMarkForm] = useState(null);
+  const [savingMark, setSavingMark] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -28,6 +36,40 @@ const StudentProfilePage = () => {
 
     run();
   }, [id]);
+
+  const startEditMark = (mark) => {
+    setEditingMarkId(mark.id);
+    setMarkForm({
+      sequencing_debugging_score: getScoreValue(mark, 'sequencing_debugging_score', 'logic_score'),
+      decomposition_score: getScoreValue(mark, 'decomposition_score', 'algorithm_score'),
+      abstraction_score: getScoreValue(mark, 'abstraction_score', 'problem_score'),
+      pattern_recognition_score: getScoreValue(mark, 'pattern_recognition_score', 'pattern_score'),
+    });
+  };
+
+  const cancelEditMark = () => {
+    setEditingMarkId('');
+    setMarkForm(null);
+  };
+
+  const saveEditMark = async (markId) => {
+    if (!markForm) return;
+    try {
+      setSavingMark(true);
+      setError('');
+      await updateMark(markId, {
+        ...markForm,
+        assessor: user?.name || student?.coach,
+      });
+      const refreshed = await getStudentById(id);
+      setStudent(refreshed);
+      cancelEditMark();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update mark.');
+    } finally {
+      setSavingMark(false);
+    }
+  };
 
   const onUpdateProfessional = async () => {
     if (!student) return;
@@ -137,6 +179,151 @@ const StudentProfilePage = () => {
         nextAssessmentDate={student.next_assessment_date}
         nextAssessmentType={student.next_assessment_type}
       />
+
+      <section className="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200">
+        <h2 className="text-lg font-bold text-slate-900">Marks</h2>
+        {student.marks?.length ? (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+                <tr>
+                  <th className="px-3 py-2">Type</th>
+                  <th className="px-3 py-2">Seq & Debug</th>
+                  <th className="px-3 py-2">Decomposition</th>
+                  <th className="px-3 py-2">Abstraction</th>
+                  <th className="px-3 py-2">Pattern</th>
+                  <th className="px-3 py-2">Total</th>
+                  <th className="px-3 py-2">TP</th>
+                  <th className="px-3 py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {student.marks.map((mark) => {
+                  const seq = getScoreValue(mark, 'sequencing_debugging_score', 'logic_score');
+                  const dec = getScoreValue(mark, 'decomposition_score', 'algorithm_score');
+                  const abs = getScoreValue(mark, 'abstraction_score', 'problem_score');
+                  const pat = getScoreValue(mark, 'pattern_recognition_score', 'pattern_score');
+                  const total = Number(mark.total_score ?? seq + dec + abs + pat);
+                  const tp = Number(mark.tp_score ?? ((total / 59) * 100).toFixed(2));
+                  const isEditing = editingMarkId === mark.id;
+
+                  return (
+                    <tr className="border-t border-slate-100" key={mark.id}>
+                      <td className="px-3 py-2 font-semibold text-slate-800">
+                        {assessmentLabels[mark.assessment_type] || mark.assessment_type}
+                      </td>
+                      {isEditing ? (
+                        <>
+                          <td className="px-3 py-2">
+                            <input
+                              className="w-20 rounded border border-slate-300 px-2 py-1"
+                              max={59}
+                              min={0}
+                              onChange={(event) =>
+                                setMarkForm((prev) => ({
+                                  ...prev,
+                                  sequencing_debugging_score: Number(event.target.value),
+                                }))
+                              }
+                              type="number"
+                              value={markForm?.sequencing_debugging_score ?? 0}
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              className="w-20 rounded border border-slate-300 px-2 py-1"
+                              max={59}
+                              min={0}
+                              onChange={(event) =>
+                                setMarkForm((prev) => ({
+                                  ...prev,
+                                  decomposition_score: Number(event.target.value),
+                                }))
+                              }
+                              type="number"
+                              value={markForm?.decomposition_score ?? 0}
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              className="w-20 rounded border border-slate-300 px-2 py-1"
+                              max={59}
+                              min={0}
+                              onChange={(event) =>
+                                setMarkForm((prev) => ({
+                                  ...prev,
+                                  abstraction_score: Number(event.target.value),
+                                }))
+                              }
+                              type="number"
+                              value={markForm?.abstraction_score ?? 0}
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              className="w-20 rounded border border-slate-300 px-2 py-1"
+                              max={59}
+                              min={0}
+                              onChange={(event) =>
+                                setMarkForm((prev) => ({
+                                  ...prev,
+                                  pattern_recognition_score: Number(event.target.value),
+                                }))
+                              }
+                              type="number"
+                              value={markForm?.pattern_recognition_score ?? 0}
+                            />
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-3 py-2 text-slate-700">{seq}</td>
+                          <td className="px-3 py-2 text-slate-700">{dec}</td>
+                          <td className="px-3 py-2 text-slate-700">{abs}</td>
+                          <td className="px-3 py-2 text-slate-700">{pat}</td>
+                        </>
+                      )}
+                      <td className="px-3 py-2 text-slate-700">{total}</td>
+                      <td className="px-3 py-2 text-slate-700">{tp}</td>
+                      <td className="px-3 py-2">
+                        {isEditing ? (
+                          <div className="flex gap-2">
+                            <button
+                              className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700"
+                              disabled={savingMark}
+                              onClick={() => saveEditMark(mark.id)}
+                              type="button"
+                            >
+                              {savingMark ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700"
+                              onClick={cancelEditMark}
+                              type="button"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700"
+                            onClick={() => startEditMark(mark)}
+                            type="button"
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-slate-600">No marks recorded yet.</p>
+        )}
+      </section>
     </main>
   );
 };

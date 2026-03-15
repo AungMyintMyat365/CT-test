@@ -39,3 +39,8 @@ export const getDueBoard = async () => {
   const { data } = await api.get('/students/due-board');
   return data;
 };
+
+export const importStudentsCsv = async (csvText) => {
+  const { data } = await api.post('/students/import-csv', { csvText });
+  return data;
+};

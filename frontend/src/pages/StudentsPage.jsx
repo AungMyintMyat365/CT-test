@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StudentTable from '../components/StudentTable';
 import { useAuth } from '../context/AuthContext';
-import { createStudent, getStudents } from '../services/studentService';
+import { createStudent, getStudents, importStudentsCsv } from '../services/studentService';
 
 const initialStudentForm = {
   name: '',
@@ -32,6 +32,9 @@ const StudentsPage = () => {
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(initialStudentForm);
+  const [importing, setImporting] = useState(false);
+  const [importSummary, setImportSummary] = useState(null);
+  const [importFileName, setImportFileName] = useState('');
 
   const loadStudents = async (params = {}, nextPage = pagination.page) => {
     try {
@@ -119,6 +122,32 @@ const StudentsPage = () => {
       setError(err.response?.data?.message || 'Could not create student.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const onImportCsv = async (event) => {
+    event.preventDefault();
+    const fileInput = event.target.elements.csvFile;
+    const file = fileInput?.files?.[0];
+    if (!file) {
+      setError('Please choose a CSV file to import.');
+      return;
+    }
+
+    try {
+      setImporting(true);
+      setError('');
+      setImportSummary(null);
+      setImportFileName(file.name);
+
+      const csvText = await file.text();
+      const result = await importStudentsCsv(csvText);
+      setImportSummary(result);
+      await loadStudents();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to import students.');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -291,6 +320,54 @@ const StudentsPage = () => {
               {creating ? 'Adding...' : 'Add Student'}
             </button>
           </form>
+        </section>
+      )}
+
+      {isAdmin && (
+        <section className="rounded-2xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200">
+          <h2 className="text-lg font-bold text-slate-900">Bulk Import Students</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Upload the CSV export from your attendance sheet. Columns should include Coder ID, Coder name,
+            Lastest Assessment Date, Lastest Assessment Type, Class, Coach name, coach_email.
+          </p>
+          <form className="mt-4 flex flex-wrap items-center gap-3" onSubmit={onImportCsv}>
+            <input
+              accept=".csv"
+              className="w-full max-w-sm rounded-lg border border-slate-300 bg-white px-3 py-2"
+              name="csvFile"
+              type="file"
+            />
+            <button
+              className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={importing}
+              type="submit"
+            >
+              {importing ? 'Importing...' : 'Import CSV'}
+            </button>
+          </form>
+
+          {importFileName && (
+            <p className="mt-3 text-sm text-slate-500">
+              Selected file: <b>{importFileName}</b>
+            </p>
+          )}
+
+          {importSummary && (
+            <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+              <p>
+                Inserted: <b>{importSummary.inserted}</b> | Skipped Existing:{' '}
+                <b>{importSummary.skippedExisting}</b> | Skipped Invalid:{' '}
+                <b>{importSummary.skippedInvalid}</b>
+              </p>
+              {importSummary.errors?.length > 0 && (
+                <ul className="mt-2 list-disc pl-5">
+                  {importSummary.errors.map((item) => (
+                    <li key={`${item.studentName}-${item.stage}`}>{`${item.studentName}: ${item.error}`}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </section>
       )}
     </main>

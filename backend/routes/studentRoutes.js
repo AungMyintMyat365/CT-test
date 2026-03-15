@@ -6,6 +6,7 @@ import {
   getStudentById,
   getStudentMarkingContext,
   getStudents,
+  importStudentsCsv,
   updateStudent,
   deleteStudent,
 } from '../controllers/studentsController.js';
@@ -15,6 +16,7 @@ const router = Router();
 
 router.get('/', authenticate, getStudents);
 router.post('/', authenticate, authorize('ADMIN'), createStudent);
+router.post('/import-csv', authenticate, authorize('ADMIN'), importStudentsCsv);
 router.get('/dashboard/stats', authenticate, getDashboardStats);
 router.get('/due-board', authenticate, getDueBoard);
 router.get('/:id/marking-context', authenticate, getStudentMarkingContext);
